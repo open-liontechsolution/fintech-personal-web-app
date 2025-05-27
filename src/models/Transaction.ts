@@ -11,10 +11,14 @@ interface TransactionAttributes {
   categoryId: string | null;
   subcategoryId: string | null;
   amount: number;
+  currency: string;
   date: Date;
   description: string | null;
   notes: string | null;
   isRecurring: boolean;
+  tags: string[] | null;
+  location: any | null; // Para coordenadas geográficas
+  status: 'pending' | 'completed' | 'reconciled';
   createdAt: Date;
   updatedAt: Date;
   importId: string | null;
@@ -30,13 +34,33 @@ class Transaction extends Model<TransactionAttributes, TransactionCreationAttrib
   public categoryId!: string | null;
   public subcategoryId!: string | null;
   public amount!: number;
+  public currency!: string;
   public date!: Date;
   public description!: string | null;
   public notes!: string | null;
   public isRecurring!: boolean;
+  public tags!: string[] | null;
+  public location!: any | null;
+  public status!: 'pending' | 'completed' | 'reconciled';
   public createdAt!: Date;
   public updatedAt!: Date;
   public importId!: string | null;
+  
+  // Método para obtener el valor en otra moneda
+  public async getAmountInCurrency(targetCurrency: string): Promise<number> {
+    // Aquí se implementaría la conversión usando tasas de cambio
+    // Para un MVP podríamos usar una API externa o tasas fijas
+    return this.amount; // Versión simplificada por ahora
+  }
+  
+  // Método para categorizar automáticamente la transacción
+  public async categorize(): Promise<void> {
+    // Implementación futura: algoritmo de categorización basado en descripción
+    if (!this.categoryId && this.description) {
+      // Lógica para asignar categoría basada en palabras clave
+      // Por ahora dejamos esto como un método de extensión
+    }
+  }
 }
 
 Transaction.init(
@@ -76,19 +100,50 @@ Transaction.init(
     subcategoryId: {
       type: DataTypes.UUID,
       allowNull: true,
-      field: 'subcategory_id',
-      references: {
-        model: 'subcategories',
-        key: 'id'
-      }
+      field: 'subcategory_id'
+      // Eliminamos la referencia a subcategories temporalmente
+      // hasta que la tabla exista
+      // references: {
+      //   model: 'subcategories',
+      //   key: 'id'
+      // }
     },
     amount: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
+      validate: {
+        notNull: { msg: 'El monto no puede ser nulo' }
+      }
+    },
+    currency: {
+      type: DataTypes.CHAR(3),
+      allowNull: false,
+      defaultValue: 'EUR',
+      validate: {
+        isIn: [['EUR', 'USD', 'GBP']] // Monedas soportadas
+      }
     },
     date: {
       type: DataTypes.DATEONLY,
       allowNull: false,
+      validate: {
+        isDate: true,
+        notNull: { msg: 'La fecha no puede ser nula' }
+      }
+    },
+    tags: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: []
+    },
+    location: {
+      type: DataTypes.JSONB,
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'completed', 'reconciled'),
+      allowNull: false,
+      defaultValue: 'completed'
     },
     description: {
       type: DataTypes.STRING(255),

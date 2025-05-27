@@ -9,8 +9,14 @@ const startServer = async () => {
   try {
     // Sync database models (si no está deshabilitado)
     if (process.env.DISABLE_DB_SYNC !== 'true') {
-      await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-      console.log('Database synchronized successfully');
+      // Si FORCE_DB_SYNC es true, forzar la creación de tablas (util para PostgreSQL)
+      if (process.env.FORCE_DB_SYNC === 'true') {
+        await sequelize.sync({ force: true });
+        console.log('Database forcefully synchronized (tables recreated)');
+      } else {
+        await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+        console.log('Database synchronized successfully');
+      }
     } else {
       console.log('Database synchronization skipped (DISABLE_DB_SYNC=true)');
     }

@@ -3,11 +3,14 @@ FROM node:18-alpine AS builder
 # Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Copiar archivos de dependencias y configuración de npm
+COPY package*.json .npmrc ./
 
-# Instalar dependencias
-RUN npm ci
+# Instalar dependencias de sistema necesarias para compilar bcrypt
+RUN apk add --no-cache make gcc g++ python3 linux-headers
+
+# Instalar dependencias (usando install en lugar de ci para actualizar package-lock.json)
+RUN npm install
 
 # Copiar el código fuente
 COPY . .
@@ -24,14 +27,18 @@ WORKDIR /app
 
 # Copiar dependencias y archivos compilados
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.sequelizerc ./
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/views ./src/views
-COPY --from=builder /app/src/public ./src/public
-COPY --from=builder /app/src/migrations ./src/migrations
-COPY --from=builder /app/src/seeders ./src/seeders
+COPY --from=builder /app/src ./src
+# Nota: copiamos toda la carpeta src para garantizar que Sequelize encuentre todos los archivos necesarios
+
+# Instalar dependencias de sistema necesarias para bcrypt
+RUN apk add --no-cache make gcc g++ python3 linux-headers
 
 # Instalar solo dependencias de producción
-RUN npm ci --only=production
+# Copiamos el .npmrc para acceder al registro privado Verdaccio
+COPY .npmrc ./
+RUN npm install --omit=dev
 
 # Copiar scripts de inicio
 COPY scripts/docker-entrypoint.sh ./

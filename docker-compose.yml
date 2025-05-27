@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   webapp:
     build:
@@ -11,16 +9,18 @@ services:
       - NODE_ENV=development
       - PORT=3000
       - DB_HOST=db
-      - DB_PORT=3306
+      - DB_PORT=5432
       - DB_USER=fintech_user
       - DB_PASSWORD=fintech_password
       - DB_NAME=fintech_personal
       - JWT_SECRET=your_jwt_secret_key_for_development
       - JWT_EXPIRES_IN=1d
       - RABBITMQ_URL=amqp://rabbitmq
-      - RUN_MIGRATIONS=false
-      - RUN_SEEDS=false
-      - DISABLE_DB_SYNC=true
+      - RUN_MIGRATIONS=true
+      - RUN_SEEDS=true
+      - SEED_TEST_DATA=true
+      - DISABLE_DB_SYNC=false
+      - FORCE_DB_SYNC=true
     depends_on:
       - db
       - rabbitmq
@@ -29,18 +29,19 @@ services:
       - fintech-network
 
   db:
-    image: mariadb:10.6
+    image: postgres:15
     environment:
-      - MYSQL_ROOT_PASSWORD=root_password
-      - MYSQL_DATABASE=fintech_personal
-      - MYSQL_USER=fintech_user
-      - MYSQL_PASSWORD=fintech_password
+      - POSTGRES_DB=fintech_personal
+      - POSTGRES_USER=fintech_user
+      - POSTGRES_PASSWORD=fintech_password
     # Sin volumen para evitar persistencia de datos
+    # Usar tmpfs para almacenamiento en memoria que se limpia automáticamente
+    tmpfs: /var/lib/postgresql/data
     ports:
-      - "3306:3306"
+      - "5432:5432"
     networks:
       - fintech-network
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: -c 'max_connections=100' -c 'shared_buffers=256MB'
 
   rabbitmq:
     image: rabbitmq:3-management

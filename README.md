@@ -7,7 +7,7 @@ Aplicación web para la gestión de finanzas personales que permite a los usuari
 - Interfaz de usuario para subir archivos CSV/Excel de transacciones bancarias
 - Sistema de autenticación de usuarios con JWT
 - Registro por invitación cerrada (solo se puede registrar con un código válido)
-- Almacenamiento de datos en MySQL/MariaDB
+- Almacenamiento de datos en PostgreSQL
 - Comunicación con otros microservicios a través de RabbitMQ
 - Visualización de transacciones y reportes financieros
 - Dashboard con resumen de transacciones y gráficos
@@ -49,7 +49,7 @@ fintech-personal-web-app/
 ## Prerrequisitos
 
 - Node.js >= 14.0.0
-- MySQL/MariaDB
+- PostgreSQL >= 15.0
 - RabbitMQ
 - Registro NPM privado (para dependencias internas)
 
@@ -73,7 +73,7 @@ Después de la instalación, puedes iniciar el servidor con `npm run dev`.
 
 ### Usando Docker
 
-Para ejecutar la aplicación con Docker y servicios asociados (MySQL, RabbitMQ) en entorno de desarrollo local:
+Para ejecutar la aplicación con Docker y servicios asociados (PostgreSQL, RabbitMQ) en entorno de desarrollo local:
 
 ```bash
 # Construir y arrancar los servicios en segundo plano

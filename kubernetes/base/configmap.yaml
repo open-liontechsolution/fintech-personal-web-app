@@ -3,6 +3,6 @@ kind: ConfigMap
 metadata:
   name: webapp-config
 data:
-  db_host: "mariadb.database.svc.cluster.local"
-  db_port: "3306"
+  db_host: "postgres.database.svc.cluster.local"
+  db_port: "5432"
   db_name: "fintech_personal"
