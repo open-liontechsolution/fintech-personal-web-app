@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fintech-qa
+namePrefix: qa-
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: qa
+
+patches:
+  - path: replica-count.yaml
+  - path: resources.yaml
+  - path: env-config.yaml
+
+configMapGenerator:
+  - name: fintech-webapp-config
+    behavior: merge
+    literals:
+      - NODE_ENV=qa
+      - LOG_LEVEL=info
+      - DISABLE_DB_SYNC=true

@@ -1,0 +1,283 @@
+name: Production Pipeline
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (without v prefix)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  K8S_ENVIRONMENT: prod
+  NAMESPACE: fintech-prod
+
+jobs:
+  determine-release-type:
+    runs-on: ubuntu-latest
+    outputs:
+      release_type: ${{ steps.set-type.outputs.release_type }}
+      version: ${{ steps.set-type.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Determine release type and version
+        id: set-type
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="v${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          
+          # Determinar si es major o minor release
+          if [[ "$VERSION" =~ v([0-9]+)\.0\.0 ]]; then
+            RELEASE_TYPE="major"
+          else
+            RELEASE_TYPE="minor"
+          fi
+          
+          echo "release_type=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          
+          echo "Release type: ${RELEASE_TYPE}"
+          echo "Version: ${VERSION}"
+
+  verify-qa-approval:
+    needs: determine-release-type
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Check QA approval
+        run: |
+          VERSION=${{ needs.determine-release-type.outputs.version }}
+          
+          # Verificar si existe un tag de QA para esta versión
+          if git rev-parse "${VERSION}-qa" >/dev/null 2>&1; then
+            echo "✅ QA tag ${VERSION}-qa exists - QA process has been completed"
+          else
+            echo "❌ QA tag ${VERSION}-qa does not exist"
+            echo "This version must be tested in QA environment first"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.determine-release-type.outputs.release_type }}" == "major" ]]; then
+            # Para major releases, verificar aprobación adicional (podría ser un issue o un label)
+            echo "Major release detected - verifying additional approvals"
+            # En un entorno real, aquí podrías verificar si existe un issue con label "major-release-approved"
+            # o algún otro mecanismo de aprobación adicional
+          fi
+
+  comprehensive-tests:
+    needs: [determine-release-type, verify-qa-approval]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run all tests (unit, integration, e2e)
+        run: |
+          echo "Running comprehensive test suite for PRODUCTION deployment"
+          npm test
+          
+          # Ejecutar pruebas adicionales para producción
+          # Aquí podrías agregar otras pruebas específicas para producción
+          # npm run test:integration
+          # npm run test:e2e
+
+  build-and-push:
+    needs: [determine-release-type, comprehensive-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.imagetag.outputs.IMAGE_TAG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tag
+        id: imagetag
+        run: |
+          VERSION=${{ needs.determine-release-type.outputs.version }}
+          IMAGE_TAG="${VERSION}"
+          
+          # También creamos una tag latest y stable
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Adding additional tags: latest, stable"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-to-prod:
+    needs: [determine-release-type, build-and-push]
+    runs-on: ubuntu-latest
+    environment: production # Requiere aprobación manual
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up kubectl
+        uses: azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: "4.5.7"
+
+      - name: Update kustomization.yaml
+        run: |
+          cd kubernetes/overlays/prod
+          kustomize edit set image fintech-webapp=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}
+
+      # Para major releases, podemos usar una estrategia de despliegue blue/green
+      - name: Setup Blue/Green for major release
+        if: needs.determine-release-type.outputs.release_type == 'major'
+        run: |
+          echo "Setting up Blue/Green deployment for major release"
+          # Aquí configurarías una implementación blue/green
+          # Por ejemplo, creando un nuevo namespace temporal
+
+      - name: Deploy to Production
+        run: |
+          kubectl apply -k kubernetes/overlays/prod
+          
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/prod-fintech-webapp -n ${{ env.NAMESPACE }} --timeout=300s
+
+      - name: Update main branch
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Asegurarse de que estamos en main
+          git checkout main
+          git pull
+          
+          # Actualizar el archivo de versión
+          echo "${{ needs.determine-release-type.outputs.version }}" > VERSION
+          
+          git add VERSION
+          git commit -m "Update version to ${{ needs.determine-release-type.outputs.version }}"
+          git push origin main
+          
+      - name: Update env/prod branch
+        run: |
+          # Crear o actualizar la rama env/prod
+          git checkout -B env/prod
+          
+          # Guardar información sobre esta release
+          echo "# Production Environment" > PROD_RELEASE.md
+          echo "Version: ${{ needs.determine-release-type.outputs.version }}" >> PROD_RELEASE.md
+          echo "Type: ${{ needs.determine-release-type.outputs.release_type }}" >> PROD_RELEASE.md
+          echo "Image Tag: ${{ needs.build-and-push.outputs.image_tag }}" >> PROD_RELEASE.md
+          echo "Deployed: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> PROD_RELEASE.md
+          
+          git add PROD_RELEASE.md
+          git commit -m "Update PROD environment to ${{ needs.determine-release-type.outputs.version }}"
+          git push -f origin env/prod
+          
+  finalize-release:
+    needs: [determine-release-type, deploy-to-prod]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Generate production release notes
+        id: release_notes
+        run: |
+          VERSION=${{ needs.determine-release-type.outputs.version }}
+          
+          # Generar notas de release
+          if [[ "${{ needs.determine-release-type.outputs.release_type }}" == "major" ]]; then
+            TITLE="🚀 Major Release ${VERSION} (Production)"
+            echo "### Breaking Changes" > release_notes.md
+            echo "" >> release_notes.md
+            echo "### New Features" >> release_notes.md
+            echo "" >> release_notes.md
+          else
+            TITLE="📦 Minor Release ${VERSION} (Production)"
+            echo "### New Features" >> release_notes.md
+            echo "" >> release_notes.md
+          fi
+          
+          # Obtener cambios desde la versión anterior en producción
+          LATEST_PROD_TAG=$(git tag -l "v*" --sort=-v:refname | grep -v "qa" | head -n 1)
+          if [[ -z "$LATEST_PROD_TAG" ]]; then
+            LATEST_PROD_TAG="v0.0.0"
+          fi
+          
+          echo "### Changes since ${LATEST_PROD_TAG}" >> release_notes.md
+          git log --pretty=format:"* %s" ${LATEST_PROD_TAG}...${VERSION} >> release_notes.md
+          
+          echo "Release notes generated for production release ${VERSION}"
+          
+      - name: Create Production Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.determine-release-type.outputs.version }}
+          name: ${{ needs.determine-release-type.outputs.version }} (Production)
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Send notification
+        if: needs.determine-release-type.outputs.release_type == 'major'
+        run: |
+          echo "Sending major release notification to stakeholders"
+          # Aquí integrarías con Slack, Email u otro sistema de notificaciones

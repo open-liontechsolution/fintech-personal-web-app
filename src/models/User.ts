@@ -1,0 +1,102 @@
+import { Model, DataTypes, Optional } from 'sequelize';
+import sequelize from '../config/database';
+import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcrypt';
+
+// Interface for User attributes
+interface UserAttributes {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLogin: Date | null;
+}
+
+// Interface for User creation attributes - these are the fields that
+// we can omit or set as optional when creating a new record
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin'> {}
+
+class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+  public id!: string;
+  public name!: string;
+  public email!: string;
+  public password!: string;
+  public createdAt!: Date;
+  public updatedAt!: Date;
+  public lastLogin!: Date | null;
+
+  // Helper method to compare passwords
+  public async comparePassword(candidatePassword: string): Promise<boolean> {
+    return bcrypt.compare(candidatePassword, this.password);
+  }
+
+  // Helper method to convert model to DTO without sensitive fields
+  public toDTO(): Omit<UserAttributes, 'password'> {
+    const { password, ...userDTO } = this.toJSON();
+    return userDTO;
+  }
+}
+
+User.init(
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: () => uuidv4(),
+      primaryKey: true,
+    },
+    name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: true,
+      },
+    },
+    password: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      field: 'created_at',
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      field: 'updated_at',
+    },
+    lastLogin: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'last_login',
+    },
+  },
+  {
+    sequelize,
+    tableName: 'users',
+    modelName: 'User',
+    underscored: true,
+    hooks: {
+      beforeCreate: async (user: User) => {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      },
+      beforeUpdate: async (user: User) => {
+        // Only hash the password if it has been modified
+        if (user.changed('password')) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+    },
+  }
+);
+
+export default User;

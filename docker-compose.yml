@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=fintech_user
+      - DB_PASSWORD=fintech_password
+      - DB_NAME=fintech_personal
+      - JWT_SECRET=your_jwt_secret_key_for_development
+      - JWT_EXPIRES_IN=1d
+      - RABBITMQ_URL=amqp://rabbitmq
+      - RUN_MIGRATIONS=false
+      - RUN_SEEDS=false
+      - DISABLE_DB_SYNC=true
+    depends_on:
+      - db
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - fintech-network
+
+  db:
+    image: mariadb:10.6
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=fintech_personal
+      - MYSQL_USER=fintech_user
+      - MYSQL_PASSWORD=fintech_password
+    # Sin volumen para evitar persistencia de datos
+    ports:
+      - "3306:3306"
+    networks:
+      - fintech-network
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    # Sin volumen para evitar persistencia de datos
+    networks:
+      - fintech-network
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+networks:
+  fintech-network:
+    driver: bridge
+
+# Se eliminan los volúmenes para evitar persistencia
+# volumes:
+#   db_data:
+#   rabbitmq_data:

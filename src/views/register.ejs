@@ -1,0 +1,97 @@
+<%- include('partials/header', { title: 'Registrarse', isAuthenticated: false }) %>
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow">
+      <div class="card-body p-5">
+        <h2 class="text-center mb-4">Crear Cuenta</h2>
+        
+        <div class="alert alert-danger d-none" id="error-message"></div>
+        
+        <form id="register-form">
+          <div class="mb-3">
+            <label for="name" class="form-label">Nombre Completo</label>
+            <input type="text" class="form-control" id="name" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="email" class="form-label">Correo Electrónico</label>
+            <input type="email" class="form-control" id="email" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" id="password" required minlength="8">
+            <div class="form-text">La contraseña debe tener al menos 8 caracteres</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="invitation-code" class="form-label">Código de Invitación</label>
+            <input type="text" class="form-control" id="invitation-code" required>
+            <div class="form-text">Necesitas un código de invitación para registrarte</div>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Registrarse</button>
+          </div>
+        </form>
+        
+        <div class="text-center mt-4">
+          <p>¿Ya tienes una cuenta? <a href="/login">Iniciar sesión</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const registerForm = document.getElementById('register-form');
+  const errorMessage = document.getElementById('error-message');
+  
+  // Check if user is already logged in
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    window.location.href = '/dashboard';
+    return;
+  }
+  
+  registerForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const invitationCode = document.getElementById('invitation-code').value;
+    
+    try {
+      errorMessage.classList.add('d-none');
+      
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, password, invitationCode })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Error al registrar usuario');
+      }
+      
+      // Save token to local storage
+      localStorage.setItem('auth_token', data.token);
+      
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
+    } catch (error) {
+      errorMessage.textContent = error.message;
+      errorMessage.classList.remove('d-none');
+    }
+  });
+});
+</script>
+
+<%- include('partials/footer') %>

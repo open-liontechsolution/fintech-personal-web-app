@@ -1,0 +1,83 @@
+<%- include('partials/header', { title: 'Iniciar Sesión', isAuthenticated: false }) %>
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow">
+      <div class="card-body p-5">
+        <h2 class="text-center mb-4">Iniciar Sesión</h2>
+        
+        <div class="alert alert-danger d-none" id="error-message"></div>
+        
+        <form id="login-form">
+          <div class="mb-3">
+            <label for="email" class="form-label">Correo Electrónico</label>
+            <input type="email" class="form-control" id="email" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+          </div>
+        </form>
+        
+        <div class="text-center mt-4">
+          <p>¿No tienes una cuenta? <a href="/register">Regístrate</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const loginForm = document.getElementById('login-form');
+  const errorMessage = document.getElementById('error-message');
+  
+  // Check if user is already logged in
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    window.location.href = '/dashboard';
+    return;
+  }
+  
+  loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+      errorMessage.classList.add('d-none');
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Error al iniciar sesión');
+      }
+      
+      // Save token to local storage
+      localStorage.setItem('auth_token', data.token);
+      
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
+    } catch (error) {
+      errorMessage.textContent = error.message;
+      errorMessage.classList.remove('d-none');
+    }
+  });
+});
+</script>
+
+<%- include('partials/footer') %>

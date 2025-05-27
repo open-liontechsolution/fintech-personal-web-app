@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fintech-webapp
+spec:
+  template:
+    spec:
+      containers:
+        - name: webapp
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: NODE_ENV
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: LOG_LEVEL
+            - name: DISABLE_DB_SYNC
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: DISABLE_DB_SYNC
