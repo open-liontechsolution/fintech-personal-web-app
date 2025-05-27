@@ -165,20 +165,51 @@ Este servicio utiliza el paquete `fintech-personal-common` que proporciona:
 - Cliente RabbitMQ
 - Manejo de errores estandarizado
 
-## Despliegue en Kubernetes con ArgoCD
+## Estrategia GitOps con Múltiples Entornos
 
-La aplicación está configurada para un modelo de despliegue GitOps utilizando ArgoCD en un cluster de Kubernetes.
+La aplicación implementa un enfoque GitOps con tres entornos separados (desarrollo, QA y producción) en un cluster Kubernetes, cada uno con su propio namespace y configuración.
 
-### Flujo de CI/CD
+### Modelo de Ramas y Entornos
 
-1. **Integración Continua**:
-   - Cuando se hace push a las ramas `main` o `develop`, o se crea un tag con formato `v*`, se inicia el workflow de GitHub Actions
-   - Se ejecutan pruebas de validación y tests unitarios
-   - Se construye la imagen Docker y se publica en GitHub Container Registry (GHCR)
+| Rama/Tag | Entorno | Namespace | Propósito |
+|----------|---------|-----------|----------|
+| `develop` | Desarrollo | `fintech-dev` | Integración continua de nuevas características |
+| `release/v*` | QA | `fintech-qa` | Validación de releases antes de producción |
+| `v*` (tags) | Producción | `fintech-prod` | Ambiente de producción estable |
+| `env/qa` | N/A | N/A | Refleja el estado actual en QA |
+| `env/prod` | N/A | N/A | Refleja el estado actual en producción |
 
-2. **Despliegue Continuo**:
-   - Si el push es a `main` o es un tag de versión, se actualiza automáticamente la referencia de la imagen en el repositorio de configuración de Kubernetes
-   - ArgoCD detecta el cambio y actualiza la aplicación en el cluster correspondiente
+### Diferenciación de Tipos de Release
+
+- **Minor Releases (v1.2.0)**:
+  - Nuevas funcionalidades con compatibilidad hacia atrás
+  - Pruebas estándar y despliegue regular
+  - Mínimo riesgo e impacto
+
+- **Major Releases (v2.0.0)**:
+  - Cambios incompatibles o transformaciones significativas
+  - Pruebas exhaustivas y aprobaciones adicionales
+  - Estrategia de despliegue blue/green para minimizar interrupciones
+  - Documentación y comunicación ampliada
+
+### Flujo de Trabajo GitOps
+
+1. **Desarrollo (CI)**:
+   - Nuevas características se desarrollan en ramas `feature/*`
+   - Se integran en `develop` mediante PRs
+   - Despliegue automático al entorno de desarrollo
+
+2. **QA (Preparación de Release)**:
+   - Se crea una rama `release/v1.2.0` desde `develop`
+   - Se despliega automáticamente al entorno QA
+   - Pruebas y validación (más extensas para major releases)
+   - Se etiqueta con `v1.2.0-qa` tras aprobación
+
+3. **Producción (CD)**:
+   - Se crea un tag `v1.2.0` para desplegar a producción
+   - Aprobación manual (entorno protegido)
+   - Estrategia de despliegue adaptada al tipo de release
+   - Actualización de `main` y `env/prod` tras éxito
 
 ### Requisitos para el Despliegue
 

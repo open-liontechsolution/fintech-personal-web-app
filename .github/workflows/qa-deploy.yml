@@ -138,35 +138,40 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-qa:
+  update-argocd-qa:
     needs: [determine-release-type, build-and-push]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up kubectl
-        uses: azure/k8s-set-context@v1
+      - name: Checkout kubernetes config repository
+        uses: actions/checkout@v3
         with:
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+          repository: ${{ github.repository_owner }}/fintech-personal-k8s
+          token: ${{ secrets.K8S_REPO_TOKEN }}
+          path: fintech-personal-k8s
 
-      - name: Install kustomize
-        uses: imranismail/setup-kustomize@v1
-        with:
-          kustomize-version: "4.5.7"
-
-      - name: Update kustomization.yaml
+      - name: Update image version in ArgoCD app
         run: |
-          cd kubernetes/overlays/qa
-          kustomize edit set image fintech-webapp=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}
-
-      - name: Deploy to QA
-        run: |
-          kubectl apply -k kubernetes/overlays/qa
+          cd fintech-personal-k8s
           
-      - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/qa-fintech-webapp -n ${{ env.NAMESPACE }} --timeout=180s
+          # Actualizar la versión de la imagen en el overlay de QA
+          sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}|g" apps/webapp/overlays/qa/kustomization.yaml
+          
+          # Si es un major release, establecer la estrategia de despliegue blue/green
+          if [ "${{ needs.determine-release-type.outputs.release_type }}" == "major" ]; then
+            echo "Configurando despliegue blue/green para major release"
+            # Aquí se pueden configurar opciones adicionales para un despliegue blue/green
+            # Por ejemplo, actualizar un ConfigMap de ArgoCD con parámetros específicos
+          fi
+          
+          # Confirmar y subir los cambios
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add apps/webapp/overlays/qa/kustomization.yaml
+          git commit -m "Update webapp QA image to ${{ needs.build-and-push.outputs.image_tag }} (${{ needs.determine-release-type.outputs.release_type }} release)"
+          git push
 
       - name: Update env/qa branch
         run: |

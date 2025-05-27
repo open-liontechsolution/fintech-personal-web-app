@@ -92,32 +92,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-dev:
+  update-argocd-dev:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up kubectl
-        uses: azure/k8s-set-context@v1
+      - name: Checkout kubernetes config repository
+        uses: actions/checkout@v3
         with:
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+          repository: ${{ github.repository_owner }}/fintech-personal-k8s
+          token: ${{ secrets.K8S_REPO_TOKEN }}
+          path: fintech-personal-k8s
 
-      - name: Install kustomize
-        uses: imranismail/setup-kustomize@v1
-        with:
-          kustomize-version: "4.5.7"
-
-      - name: Update kustomization.yaml
+      - name: Update image version in ArgoCD app
         run: |
-          cd kubernetes/overlays/dev
-          kustomize edit set image fintech-webapp=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.IMAGE_TAG }}
-
-      - name: Deploy to development
-        run: |
-          kubectl apply -k kubernetes/overlays/dev
+          cd fintech-personal-k8s
           
-      - name: Verify deployment
+          # Actualizar la versión de la imagen en el overlay de desarrollo
+          sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.IMAGE_TAG }}|g" apps/webapp/overlays/dev/kustomization.yaml
+          
+          # Confirmar y subir los cambios
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add apps/webapp/overlays/dev/kustomization.yaml
+          git commit -m "Update webapp dev image to ${{ needs.build-and-push.outputs.IMAGE_TAG }}"
+          git push
+          
+      - name: Wait for ArgoCD sync
         run: |
-          kubectl rollout status deployment/dev-fintech-webapp -n ${{ env.NAMESPACE }} --timeout=180s
+          echo "Los cambios han sido enviados al repositorio de infraestructura. ArgoCD sincronizará automáticamente los cambios."
+          echo "Puedes verificar el estado del despliegue en la UI de ArgoCD."

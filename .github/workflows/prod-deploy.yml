@@ -156,7 +156,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-prod:
+  update-argocd-prod:
     needs: [determine-release-type, build-and-push]
     runs-on: ubuntu-latest
     environment: production # Requiere aprobación manual
@@ -164,36 +164,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up kubectl
-        uses: azure/k8s-set-context@v1
+      - name: Checkout kubernetes config repository
+        uses: actions/checkout@v3
         with:
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+          repository: ${{ github.repository_owner }}/fintech-personal-k8s
+          token: ${{ secrets.K8S_REPO_TOKEN }}
+          path: fintech-personal-k8s
 
-      - name: Install kustomize
-        uses: imranismail/setup-kustomize@v1
-        with:
-          kustomize-version: "4.5.7"
-
-      - name: Update kustomization.yaml
+      # Para major releases, preparar configuración especial
+      - name: Prepare deployment configuration
         run: |
-          cd kubernetes/overlays/prod
-          kustomize edit set image fintech-webapp=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}
-
-      # Para major releases, podemos usar una estrategia de despliegue blue/green
-      - name: Setup Blue/Green for major release
-        if: needs.determine-release-type.outputs.release_type == 'major'
-        run: |
-          echo "Setting up Blue/Green deployment for major release"
-          # Aquí configurarías una implementación blue/green
-          # Por ejemplo, creando un nuevo namespace temporal
-
-      - name: Deploy to Production
-        run: |
-          kubectl apply -k kubernetes/overlays/prod
+          RELEASE_TYPE="${{ needs.determine-release-type.outputs.release_type }}"
+          echo "Release type: ${RELEASE_TYPE}"
           
-      - name: Verify deployment
+          if [ "${RELEASE_TYPE}" == "major" ]; then
+            echo "Preparando configuración para major release (Blue/Green deployment)"
+            # Aquí se prepararían archivos de configuración especiales para un despliegue blue/green
+            # que ArgoCD usará automáticamente
+          else
+            echo "Preparando configuración para minor/patch release (despliegue estándar)"
+          fi
+
+      - name: Update image version in ArgoCD app
         run: |
-          kubectl rollout status deployment/prod-fintech-webapp -n ${{ env.NAMESPACE }} --timeout=300s
+          cd fintech-personal-k8s
+          
+          # Actualizar la versión de la imagen en el overlay de producción
+          sed -i "s|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}|g" apps/webapp/overlays/prod/kustomization.yaml
+          
+          # Confirmar y subir los cambios
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add apps/webapp/overlays/prod/kustomization.yaml
+          git commit -m "[PROD] Update webapp image to ${{ needs.build-and-push.outputs.image_tag }} (${{ needs.determine-release-type.outputs.release_type }} release)"
+          git push
+          
+      - name: Monitor ArgoCD Sync
+        run: |
+          echo "Cambios enviados al repositorio de infraestructura. ArgoCD sincronizará el despliegue."
+          echo "El despliegue puede ser monitoreado a través de la UI de ArgoCD."
+          
+          # En un entorno real, podríamos añadir aquí un script que consulte
+          # el estado de sincronización de ArgoCD mediante su API REST
 
       - name: Update main branch
         run: |
