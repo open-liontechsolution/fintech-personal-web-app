@@ -200,7 +200,16 @@ jobs:
           
           # También actualizar la imagen en el kustomization de desarrollo
           if [ -f "kubernetes/overlays/dev/kustomization.yaml" ]; then
-            sed -i "s|newTag:.*|newTag: ${IMAGE_TAG}|g" kubernetes/overlays/dev/kustomization.yaml
+            # Verificar que IMAGE_TAG no esté vacío antes de actualizar
+            if [ -n "${IMAGE_TAG}" ]; then
+              # Usar una expresión sed más precisa para asegurar que newTag tenga un valor
+              sed -i "s|newTag:.*|newTag: ${IMAGE_TAG}|g" kubernetes/overlays/dev/kustomization.yaml
+              # Verificar que se haya actualizado correctamente
+              grep "newTag:" kubernetes/overlays/dev/kustomization.yaml
+            else
+              echo "ERROR: Variable IMAGE_TAG está vacía. No se actualizará el archivo kustomization.yaml"
+              exit 1
+            fi
           fi
           
           # Confirmar y subir los cambios
