@@ -63,6 +63,9 @@ jobs:
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
+    # Añadir outputs para que el tag de imagen esté disponible para otros jobs
+    outputs:
+      IMAGE_TAG: ${{ steps.imagetag.outputs.IMAGE_TAG }}
     permissions:
       contents: read
       packages: write
@@ -184,7 +187,26 @@ jobs:
       - name: Get image tag from previous job
         id: imagetag
         run: |
-          echo "IMAGE_TAG=${{ needs.build-and-push.outputs.IMAGE_TAG || env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+          # Obtener la etiqueta directamente del job build-and-push
+          IMAGE_TAG="${{ needs.build-and-push.outputs.IMAGE_TAG }}"
+          
+          # Verificar que la etiqueta no esté vacía
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "ERROR: No se pudo obtener IMAGE_TAG del job build-and-push"
+            # Intentar obtener la etiqueta de la variable de entorno como respaldo
+            IMAGE_TAG="${{ env.IMAGE_TAG }}"
+            if [ -z "$IMAGE_TAG" ]; then
+              echo "ERROR: Tampoco se pudo obtener IMAGE_TAG de las variables de entorno"
+              exit 1
+            fi
+            echo "Usando etiqueta de respaldo: $IMAGE_TAG"
+          else
+            echo "Usando etiqueta del job build-and-push: $IMAGE_TAG"
+          fi
+          
+          # Establecer la etiqueta para los siguientes pasos
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update ArgoCD application manifest
         run: |
