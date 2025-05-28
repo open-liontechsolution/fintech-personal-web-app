@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fintech-webapp
+  name: webapp
 spec:
   replicas: 1

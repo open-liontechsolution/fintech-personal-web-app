@@ -7,5 +7,5 @@ resources:
   - configmap.yaml
 
 commonLabels:
-  app.kubernetes.io/name: webapp
+  app.kubernetes.io/name: fintech-webapp
   app.kubernetes.io/part-of: fintech-personal
