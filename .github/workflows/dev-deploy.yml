@@ -170,6 +170,9 @@ jobs:
   update-argocd-dev:
     needs: [build-and-push, cleanup-old-images]
     runs-on: ubuntu-latest
+    # Añadir permisos de escritura para permitir push al repositorio
+    permissions:
+      contents: write
     outputs:
       image_tag: ${{ steps.imagetag.outputs.IMAGE_TAG }}
     steps:
