@@ -25,24 +25,38 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org/'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      # Configurar npm para usar npm público y Verdaccio solo para paquetes privados
+      # Configurar npm para usar Verdaccio como registro principal
       - name: Configure npm
         run: |
-          echo "registry=https://registry.npmjs.org/" > .npmrc
-          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
 
-      # Regenerar completamente el package-lock.json para usar npm público
-      - name: Clean npm cache and regenerate lock
+      # Modificar package-lock.json para reemplazar URLs de paquetes problemáticos
+      - name: Fix package-lock.json for problematic packages
         run: |
-          npm cache clean --force
-          rm -f package-lock.json
-          npm install --package-lock-only --no-fund
+          if [ -f package-lock.json ]; then
+            # Hacer una copia de respaldo
+            cp package-lock.json package-lock.json.bak
+            
+            # Reemplazar URLs de paquetes problemáticos conocidos
+            sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-.*"|"resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"|g' package-lock.json
+            sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yn/-/yn-.*"|"resolved": "https://registry.npmjs.org/yn/-/yn-3.1.1.tgz"|g' package-lock.json
+            
+            echo "Package-lock.json modificado para paquetes problemáticos"
+          else
+            echo "No se encontró package-lock.json"
+          fi
 
-      - name: Install dependencies with npm public
-        run: npm ci
+      # Instalar primero los paquetes problemáticos directamente
+      - name: Pre-install problematic packages
+        run: |
+          mkdir -p node_modules
+          npm install yocto-queue@0.1.0 yn@3.1.1 --no-save --registry=https://registry.npmjs.org/ || true
+
+      - name: Install dependencies
+        run: npm ci --no-fund || npm install --no-fund
 
       - name: Lint code
         run: npm run lint
@@ -59,24 +73,38 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org/'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      # Configurar npm para usar npm público y Verdaccio solo para paquetes privados
+      # Configurar npm para usar Verdaccio como registro principal
       - name: Configure npm
         run: |
-          echo "registry=https://registry.npmjs.org/" > .npmrc
-          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
 
-      # Regenerar completamente el package-lock.json para usar npm público
-      - name: Clean npm cache and regenerate lock
+      # Modificar package-lock.json para reemplazar URLs de paquetes problemáticos
+      - name: Fix package-lock.json for problematic packages
         run: |
-          npm cache clean --force
-          rm -f package-lock.json
-          npm install --package-lock-only --no-fund
+          if [ -f package-lock.json ]; then
+            # Hacer una copia de respaldo
+            cp package-lock.json package-lock.json.bak
+            
+            # Reemplazar URLs de paquetes problemáticos conocidos
+            sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-.*"|"resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"|g' package-lock.json
+            sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yn/-/yn-.*"|"resolved": "https://registry.npmjs.org/yn/-/yn-3.1.1.tgz"|g' package-lock.json
+            
+            echo "Package-lock.json modificado para paquetes problemáticos"
+          else
+            echo "No se encontró package-lock.json"
+          fi
 
-      - name: Install dependencies with npm public
-        run: npm ci
+      # Instalar primero los paquetes problemáticos directamente
+      - name: Pre-install problematic packages
+        run: |
+          mkdir -p node_modules
+          npm install yocto-queue@0.1.0 yn@3.1.1 --no-save --registry=https://registry.npmjs.org/ || true
+
+      - name: Install dependencies
+        run: npm ci --no-fund || npm install --no-fund
 
       - name: Run tests
         run: npm test
@@ -92,26 +120,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # Configuración de Node.js para Dockerfile
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org/'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      # Configurar npm para usar npm público y Verdaccio solo para paquetes privados
+      # Configurar npm para usar Verdaccio como registro principal
       - name: Configure npm
         run: |
-          echo "registry=https://registry.npmjs.org/" > .npmrc
-          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
 
-      # Regenerar completamente el package-lock.json para Docker build
-      - name: Clean npm cache and regenerate lock
+      # Modificar package-lock.json para reemplazar URLs de paquetes problemáticos
+      - name: Fix package-lock.json for problematic packages
         run: |
-          npm cache clean --force
-          rm -f package-lock.json
-          npm install --package-lock-only --no-fund
+          if [ -f package-lock.json ]; then
+            # Hacer una copia de respaldo
+            cp package-lock.json package-lock.json.bak
+            
+            # Reemplazar URLs de paquetes problemáticos conocidos
+            sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-.*"|"resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"|g' package-lock.json
+            sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yn/-/yn-.*"|"resolved": "https://registry.npmjs.org/yn/-/yn-3.1.1.tgz"|g' package-lock.json
+            
+            echo "Package-lock.json modificado para paquetes problemáticos"
+          else
+            echo "No se encontró package-lock.json"
+          fi
+
+      # Instalar primero los paquetes problemáticos directamente
+      - name: Pre-install problematic packages
+        run: |
+          mkdir -p node_modules
+          npm install yocto-queue@0.1.0 yn@3.1.1 --no-save --registry=https://registry.npmjs.org/ || true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
