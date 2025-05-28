@@ -25,7 +25,14 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://verdaccio.liontechsolution.com/'
+          registry-url: 'https://registry.npmjs.org/'
+
+      # Configurar .npmrc para npm
+      - name: Configure npm
+        run: |
+          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "always-auth=false" >> .npmrc
+          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
 
       - name: Install dependencies
         run: npm ci
@@ -45,7 +52,14 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://verdaccio.liontechsolution.com/'
+          registry-url: 'https://registry.npmjs.org/'
+
+      # Configurar .npmrc para npm
+      - name: Configure npm
+        run: |
+          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "always-auth=false" >> .npmrc
+          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
 
       - name: Install dependencies
         run: npm ci
@@ -64,19 +78,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Agregar configuración de Node.js y npm para Dockerfile
+      # Configuración de Node.js para Dockerfile
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://verdaccio.liontechsolution.com/'
+          registry-url: 'https://registry.npmjs.org/'
 
       # Configurar .npmrc para que Docker lo use durante la construcción
       - name: Configure npm
         run: |
-          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
+          echo "registry=https://registry.npmjs.org/" > .npmrc
           echo "always-auth=false" >> .npmrc
+          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
