@@ -37,21 +37,54 @@ jobs:
           echo "fetch-retry-mintimeout=10000" >> .npmrc
           echo "fetch-retry-maxtimeout=60000" >> .npmrc
 
-      # Intentar obtener yocto-queue directamente
-      - name: Prefetch problematic package
+      # Descargar y instalar manualmente el paquete problemático
+      - name: Fix problematic package
         run: |
+          # Crear directorio node_modules si no existe
+          mkdir -p node_modules
+          
+          # Descargar el paquete directamente del registro público
+          cd /tmp
+          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/
+          
+          # Descomprimir el paquete
+          mkdir -p yocto-queue
+          tar -xzf yocto-queue-0.1.0.tgz -C yocto-queue --strip-components=1
+          
+          # Copiar el paquete a node_modules
+          cd $GITHUB_WORKSPACE
           mkdir -p node_modules/yocto-queue
-          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/ || true
-          if [ -f "yocto-queue-0.1.0.tgz" ]; then
-            echo "Paquete descargado correctamente"
-            mkdir -p $HOME/.npm-global/
-            cp yocto-queue-0.1.0.tgz $HOME/.npm-global/
+          cp -R /tmp/yocto-queue/* node_modules/yocto-queue/
+          
+          # Verificar que el paquete se ha instalado correctamente
+          if [ -f "node_modules/yocto-queue/package.json" ]; then
+            echo "✅ Paquete yocto-queue instalado manualmente con éxito"
+          else
+            echo "❌ Error al instalar yocto-queue manualmente"
+            exit 1
+          fi
+
+      # Modificar package-lock.json para evitar que npm intente descargar yocto-queue
+      - name: Fix package-lock.json
+        run: |
+          # Hacer una copia de seguridad
+          cp package-lock.json package-lock.json.bak
+          
+          # Intentar modificar las referencias a yocto-queue en package-lock.json
+          sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-.*"|"resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"|g' package-lock.json
+          
+          # Verificar que se ha modificado
+          grep -q "registry.npmjs.org/yocto-queue" package-lock.json
+          if [ $? -eq 0 ]; then
+            echo "✅ package-lock.json modificado correctamente"
+          else
+            echo "⚠️ No se pudo modificar package-lock.json, pero continuamos con la instalación"
           fi
 
       - name: Install dependencies
-        run: npm ci
-        env:
-          npm_config_cache: $HOME/.npm-global
+        run: |
+          # Usar --no-package-lock para evitar que npm actualice el package-lock.json
+          npm ci --no-package-lock || npm ci --no-package-lock --force
 
       - name: Lint code
         run: npm run lint
@@ -80,21 +113,54 @@ jobs:
           echo "fetch-retry-mintimeout=10000" >> .npmrc
           echo "fetch-retry-maxtimeout=60000" >> .npmrc
 
-      # Intentar obtener yocto-queue directamente
-      - name: Prefetch problematic package
+      # Descargar y instalar manualmente el paquete problemático
+      - name: Fix problematic package
         run: |
+          # Crear directorio node_modules si no existe
+          mkdir -p node_modules
+          
+          # Descargar el paquete directamente del registro público
+          cd /tmp
+          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/
+          
+          # Descomprimir el paquete
+          mkdir -p yocto-queue
+          tar -xzf yocto-queue-0.1.0.tgz -C yocto-queue --strip-components=1
+          
+          # Copiar el paquete a node_modules
+          cd $GITHUB_WORKSPACE
           mkdir -p node_modules/yocto-queue
-          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/ || true
-          if [ -f "yocto-queue-0.1.0.tgz" ]; then
-            echo "Paquete descargado correctamente"
-            mkdir -p $HOME/.npm-global/
-            cp yocto-queue-0.1.0.tgz $HOME/.npm-global/
+          cp -R /tmp/yocto-queue/* node_modules/yocto-queue/
+          
+          # Verificar que el paquete se ha instalado correctamente
+          if [ -f "node_modules/yocto-queue/package.json" ]; then
+            echo "✅ Paquete yocto-queue instalado manualmente con éxito"
+          else
+            echo "❌ Error al instalar yocto-queue manualmente"
+            exit 1
+          fi
+
+      # Modificar package-lock.json para evitar que npm intente descargar yocto-queue
+      - name: Fix package-lock.json
+        run: |
+          # Hacer una copia de seguridad
+          cp package-lock.json package-lock.json.bak
+          
+          # Intentar modificar las referencias a yocto-queue en package-lock.json
+          sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-.*"|"resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"|g' package-lock.json
+          
+          # Verificar que se ha modificado
+          grep -q "registry.npmjs.org/yocto-queue" package-lock.json
+          if [ $? -eq 0 ]; then
+            echo "✅ package-lock.json modificado correctamente"
+          else
+            echo "⚠️ No se pudo modificar package-lock.json, pero continuamos con la instalación"
           fi
 
       - name: Install dependencies
-        run: npm ci
-        env:
-          npm_config_cache: $HOME/.npm-global
+        run: |
+          # Usar --no-package-lock para evitar que npm actualice el package-lock.json
+          npm ci --no-package-lock || npm ci --no-package-lock --force
 
       - name: Run tests
         run: npm test
@@ -118,7 +184,7 @@ jobs:
           cache: 'npm'
           registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      # Configurar .npmrc para que Docker lo use durante la construcción
+      # Configurar .npmrc optimizado para CI
       - name: Configure npm
         run: |
           echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
@@ -128,15 +194,21 @@ jobs:
           echo "fetch-retry-mintimeout=10000" >> .npmrc
           echo "fetch-retry-maxtimeout=60000" >> .npmrc
 
-      # Intentar obtener yocto-queue directamente
-      - name: Prefetch problematic package
+      # Para Docker build también necesitamos modificar las referencias en package-lock.json
+      - name: Fix package-lock.json for Docker build
         run: |
-          mkdir -p node_modules/yocto-queue
-          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/ || true
-          if [ -f "yocto-queue-0.1.0.tgz" ]; then
-            echo "Paquete descargado correctamente"
-            mkdir -p $HOME/.npm-global/
-            cp yocto-queue-0.1.0.tgz $HOME/.npm-global/
+          # Hacer una copia de seguridad
+          cp package-lock.json package-lock.json.bak
+          
+          # Intentar modificar las referencias a yocto-queue en package-lock.json
+          sed -i 's|"resolved": "https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-.*"|"resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"|g' package-lock.json
+          
+          # Verificar que se ha modificado
+          grep -q "registry.npmjs.org/yocto-queue" package-lock.json
+          if [ $? -eq 0 ]; then
+            echo "✅ package-lock.json modificado correctamente"
+          else
+            echo "⚠️ No se pudo modificar package-lock.json, pero continuamos con la construcción"
           fi
 
       - name: Set up Docker Buildx
