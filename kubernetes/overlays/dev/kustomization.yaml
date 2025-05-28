@@ -22,3 +22,8 @@ configMapGenerator:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - DISABLE_DB_SYNC=false
+
+images:
+  - name: ghcr.io/open-liontechsolution/fintech-personal-web-app
+    newName: ghcr.io/open-liontechsolution/fintech-personal-web-app
+    newTag: latest
