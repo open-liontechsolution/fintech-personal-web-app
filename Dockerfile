@@ -3,8 +3,13 @@ FROM node:18-alpine AS builder
 # Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar archivos de dependencias y configuración de npm
-COPY package*.json .npmrc ./
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Configurar npm para usar el registro público y Verdaccio solo para paquetes privados
+RUN echo "registry=https://registry.npmjs.org/" > .npmrc \
+    && echo "fintech-personal-common:registry=https://verdaccio.liontechsolution.com/" >> .npmrc \
+    && echo "always-auth=false" >> .npmrc
 
 # Instalar dependencias de sistema necesarias para compilar bcrypt
 RUN apk add --no-cache make gcc g++ python3 linux-headers
@@ -36,8 +41,10 @@ COPY --from=builder /app/src ./src
 RUN apk add --no-cache make gcc g++ python3 linux-headers
 
 # Instalar solo dependencias de producción
-# Copiamos el .npmrc para acceder al registro privado Verdaccio
-COPY .npmrc ./
+# Configurar npm para usar el registro público y Verdaccio solo para paquetes privados
+RUN echo "registry=https://registry.npmjs.org/" > .npmrc \
+    && echo "fintech-personal-common:registry=https://verdaccio.liontechsolution.com/" >> .npmrc \
+    && echo "always-auth=false" >> .npmrc
 RUN npm install --omit=dev
 
 # Copiar scripts de inicio
