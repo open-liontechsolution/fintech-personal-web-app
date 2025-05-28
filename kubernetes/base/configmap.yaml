@@ -3,6 +3,12 @@ kind: ConfigMap
 metadata:
   name: fintech-webapp-config
 data:
-  db_host: "postgres.database.svc.cluster.local"
+  db_primary_host: "postgresql-primary.generic.svc.cluster.local"
+  db_read_host: "postgresql-read.generic.svc.cluster.local"
   db_port: "5432"
-  db_name: "fintech_personal"
+  db_name: "fintech_db"
+  db_schema: "fintech"
+  # Variables para control de migraciones
+  DISABLE_DB_SYNC: "false"
+  RUN_MIGRATIONS: "false"
+  RUN_SEEDS: "false"

@@ -27,12 +27,18 @@ spec:
             memory: "256Mi"
             cpu: "500m"
         env:
-        # Variables de entorno básicas - las específicas por entorno se definen en los overlays
-        - name: DB_HOST
+        # Variables de entorno para la base de datos primaria (escritura)
+        - name: DB_PRIMARY_HOST
           valueFrom:
             configMapKeyRef:
               name: fintech-webapp-config
-              key: db_host
+              key: db_primary_host
+        # Variables de entorno para la base de datos de lectura
+        - name: DB_READ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: db_read_host
         - name: DB_PORT
           valueFrom:
             configMapKeyRef:
@@ -43,6 +49,12 @@ spec:
             configMapKeyRef:
               name: fintech-webapp-config
               key: db_name
+        - name: DB_SCHEMA
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: db_schema
+        # Credenciales de usuario normal para operaciones regulares de la aplicación
         - name: DB_USER
           valueFrom:
             secretKeyRef:
@@ -53,6 +65,17 @@ spec:
             secretKeyRef:
               name: fintech-webapp-secrets
               key: db_password
+        # Credenciales de usuario admin para migraciones
+        - name: DB_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: fintech-webapp-secrets
+              key: db_admin_user
+        - name: DB_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fintech-webapp-secrets
+              key: db_admin_password
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -63,8 +86,22 @@ spec:
             secretKeyRef:
               name: fintech-webapp-secrets
               key: rabbitmq_url
+        # Control de migraciones y sincronización de BD
+        - name: DISABLE_DB_SYNC
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: DISABLE_DB_SYNC
         - name: RUN_MIGRATIONS
-          value: "true"
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: RUN_MIGRATIONS
+        - name: RUN_SEEDS
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: RUN_SEEDS
         livenessProbe:
           httpGet:
             path: /api/health

@@ -24,7 +24,17 @@ configMapGenerator:
     literals:
       - NODE_ENV=development
       - LOG_LEVEL=debug
+      # Configuración para la base de datos con persistencia
       - DISABLE_DB_SYNC=false
+      # Inicialmente deshabilitamos migraciones/semillas para el entorno de desarrollo con BD persistente
+      - RUN_MIGRATIONS=false
+      - RUN_SEEDS=false
+      # Configuración correcta de la base de datos para cluster dev
+      - db_primary_host=postgresql-primary.generic.svc.cluster.local
+      - db_read_host=postgresql-read.generic.svc.cluster.local
+      - db_port=5432
+      - db_name=fintech_db
+      - db_schema=fintech
 
 images:
   - name: ghcr.io/open-liontechsolution/fintech-personal-web-app
