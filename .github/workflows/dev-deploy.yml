@@ -17,6 +17,8 @@ jobs:
   verdaccio-access-test:
     runs-on: ubuntu-latest
     steps:
+      - name: Check external IP
+        run: curl https://ifconfig.me
       - name: Test access to Verdaccio package
         run: |
           echo "Testing package download..."
