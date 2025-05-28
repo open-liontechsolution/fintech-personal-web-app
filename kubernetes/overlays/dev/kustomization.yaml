@@ -19,8 +19,8 @@ patches:
 
 configMapGenerator:
   - name: fintech-webapp-config
-    # Cambiado de 'merge' a 'create' porque el ConfigMap no existe en los recursos base
-    behavior: create
+    # Cambiado de 'create' a 'merge' porque el ConfigMap ahora existe en los recursos base
+    behavior: merge
     literals:
       - NODE_ENV=development
       - LOG_LEVEL=debug
