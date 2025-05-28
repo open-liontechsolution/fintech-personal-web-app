@@ -5,7 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
-  - networkpolicy.yaml
+  - postgres-ingress-policy.yaml
 
 labels:
 - pairs:
