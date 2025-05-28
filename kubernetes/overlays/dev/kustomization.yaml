@@ -7,8 +7,10 @@ namePrefix: dev-
 resources:
   - ../../base
 
-commonLabels:
-  environment: development
+# Reemplazado commonLabels (obsoleto) por labels
+labels:
+  - pairs:
+      environment: development
 
 patches:
   - path: replica-count.yaml
@@ -17,7 +19,8 @@ patches:
 
 configMapGenerator:
   - name: fintech-webapp-config
-    behavior: merge
+    # Cambiado de 'merge' a 'create' porque el ConfigMap no existe en los recursos base
+    behavior: create
     literals:
       - NODE_ENV=development
       - LOG_LEVEL=debug
