@@ -88,6 +88,11 @@ jobs:
           echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
 
+      - name: Set up QEMU for multi-architecture builds
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,amd64'
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -110,6 +115,7 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

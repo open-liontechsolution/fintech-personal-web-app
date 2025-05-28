@@ -11,7 +11,7 @@ spec:
     path: kubernetes/overlays/dev
     kustomize:
       images:
-      - ghcr.io/open-liontechsolution/fintech-personal-web-app:
+      - ghcr.io/open-liontechsolution/fintech-personal-web-app:latest
   destination:
     server: https://kubernetes.default.svc
     namespace: fintech-dev
