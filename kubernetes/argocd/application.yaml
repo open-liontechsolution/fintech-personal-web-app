@@ -6,12 +6,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: {{REPO_URL}}
+    repoURL: https://github.com/open-liontechsolution/fintech-personal-web-app.git
     targetRevision: develop
     path: kubernetes/overlays/dev
     kustomize:
       images:
-      - ghcr.io/{{REPO_OWNER}}/fintech-personal-web-app:{{IMAGE_TAG}}
+      - ghcr.io/open-liontechsolution/fintech-personal-web-app:
   destination:
     server: https://kubernetes.default.svc
     namespace: fintech-dev
