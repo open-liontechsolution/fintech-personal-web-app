@@ -14,7 +14,47 @@ env:
   NAMESPACE: fintech-dev
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+  
+  test:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+  
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,8 +64,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Omitimos completamente la instalación de dependencias locales
-      # y dejamos que Docker maneje esto durante la construcción
+      # Agregar configuración de Node.js y npm para Dockerfile
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
+
+      # Configurar .npmrc para que Docker lo use durante la construcción
+      - name: Configure npm
+        run: |
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
+          echo "always-auth=false" >> .npmrc
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -43,18 +95,6 @@ jobs:
           echo "IMAGE_TAG=dev-${SHORT_SHA}" >> $GITHUB_ENV
           echo "IMAGE_TAG=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
-      # Modificar Dockerfile para usar npm público y solo Verdaccio para paquetes específicos
-      - name: Setup Dockerfile for CI
-        run: |
-          # Verificar si existe .npmrc en el proyecto
-          if [ -f ".npmrc" ]; then
-            echo "Modificando .npmrc para CI"
-            echo "registry=https://registry.npmjs.org/" > .npmrc
-            echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
-            echo "fintech-personal-common:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
-            echo "always-auth=false" >> .npmrc
-          fi
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -67,9 +107,6 @@ jobs:
             org.opencontainers.image.version=${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
-            FINTECH_PERSONAL_REGISTRY=https://verdaccio.liontechsolution.com/
 
   cleanup-old-images:
     needs: build-and-push
