@@ -31,6 +31,9 @@ class ExchangeRate extends Model<ExchangeRateAttributes, ExchangeRateCreationAtt
 
   // Método para convertir un monto entre monedas
   public convert(amount: number): number {
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      throw new Error('Invalid amount: must be a number');
+    }
     return amount * this.rate;
   }
 
@@ -39,9 +42,31 @@ class ExchangeRate extends Model<ExchangeRateAttributes, ExchangeRateCreationAtt
     return 1 / this.rate;
   }
 
+  // Método para convertir un monto entre diferentes monedas
+  public static async convertAmount(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
+    const rate = await ExchangeRate.getLatestRate(fromCurrency, toCurrency);
+    if (!rate) {
+      throw new Error(`No exchange rate found for ${fromCurrency} to ${toCurrency}`);
+    }
+    return rate.convert(amount);
+  }
+
   // Método estático para obtener la tasa más reciente
   public static async getLatestRate(sourceCurrency: string, targetCurrency: string): Promise<ExchangeRate | null> {
-    return ExchangeRate.findOne({
+    // If source and target are the same, return a rate of 1
+    if (sourceCurrency === targetCurrency) {
+      const dummyRate = new ExchangeRate();
+      dummyRate.sourceCurrency = sourceCurrency;
+      dummyRate.targetCurrency = targetCurrency;
+      dummyRate.rate = 1;
+      dummyRate.date = new Date();
+      dummyRate.source = 'system';
+      dummyRate.isActive = true;
+      return dummyRate;
+    }
+    
+    // Look for a direct rate
+    const directRate = await ExchangeRate.findOne({
       where: {
         sourceCurrency,
         targetCurrency,
@@ -49,9 +74,72 @@ class ExchangeRate extends Model<ExchangeRateAttributes, ExchangeRateCreationAtt
       },
       order: [['date', 'DESC']]
     });
+    
+    if (directRate) {
+      return directRate;
+    }
+    
+    // Look for inverse rate
+    const inverseRate = await ExchangeRate.findOne({
+      where: {
+        sourceCurrency: targetCurrency,
+        targetCurrency: sourceCurrency,
+        isActive: true
+      },
+      order: [['date', 'DESC']]
+    });
+    
+    if (inverseRate) {
+      const dummyRate = new ExchangeRate();
+      dummyRate.sourceCurrency = sourceCurrency;
+      dummyRate.targetCurrency = targetCurrency;
+      dummyRate.rate = 1 / inverseRate.rate;
+      dummyRate.date = inverseRate.date;
+      dummyRate.source = `inverse:${inverseRate.id}`;
+      dummyRate.isActive = true;
+      return dummyRate;
+    }
+    
+    // Try to find a path through EUR (common base currency)
+    if (sourceCurrency !== 'EUR' && targetCurrency !== 'EUR') {
+      const sourceToEUR = await ExchangeRate.findOne({
+        where: {
+          sourceCurrency,
+          targetCurrency: 'EUR',
+          isActive: true
+        },
+        order: [['date', 'DESC']]
+      });
+      
+      const EURToTarget = await ExchangeRate.findOne({
+        where: {
+          sourceCurrency: 'EUR',
+          targetCurrency,
+          isActive: true
+        },
+        order: [['date', 'DESC']]
+      });
+      
+      if (sourceToEUR && EURToTarget) {
+        const dummyRate = new ExchangeRate();
+        dummyRate.sourceCurrency = sourceCurrency;
+        dummyRate.targetCurrency = targetCurrency;
+        dummyRate.rate = sourceToEUR.rate * EURToTarget.rate;
+        dummyRate.date = new Date(Math.max(
+          sourceToEUR.date.getTime(),
+          EURToTarget.date.getTime()
+        ));
+        dummyRate.source = `calculated:${sourceToEUR.id},${EURToTarget.id}`;
+        dummyRate.isActive = true;
+        return dummyRate;
+      }
+    }
+    
+    return null;
   }
 }
 
+// Static method to convert an amount between currencies
 ExchangeRate.init(
   {
     id: {
@@ -131,6 +219,21 @@ ExchangeRate.init(
       {
         name: 'exchange_rates_active_idx',
         fields: ['is_active'],
+      },
+      // Índice compuesto para búsquedas por moneda origen
+      {
+        name: 'exchange_rates_source_currency_idx',
+        fields: ['source_currency'],
+      },
+      // Índice compuesto para búsquedas por moneda destino
+      {
+        name: 'exchange_rates_target_currency_idx',
+        fields: ['target_currency'],
+      },
+      // Índice compuesto para búsquedas por par de monedas y fecha
+      {
+        name: 'exchange_rates_currencies_date_idx',
+        fields: ['source_currency', 'target_currency', 'date'],
       }
     ]
   }

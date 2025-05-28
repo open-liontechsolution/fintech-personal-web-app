@@ -19,8 +19,9 @@ services:
       - RUN_MIGRATIONS=true
       - RUN_SEEDS=true
       - SEED_TEST_DATA=true
-      - DISABLE_DB_SYNC=false
+      - DISABLE_DB_SYNC=true
       - FORCE_DB_SYNC=true
+      - IS_CLUSTER=false
     depends_on:
       - db
       - rabbitmq

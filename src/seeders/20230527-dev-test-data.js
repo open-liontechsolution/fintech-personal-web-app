@@ -5,9 +5,21 @@ const bcrypt = require('bcrypt');
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Solo ejecutar si estamos en entorno de desarrollo local
-    if (process.env.NODE_ENV !== 'development' && process.env.SEED_TEST_DATA !== 'true') {
-      console.log('Skipping test data seeding - not in development environment or SEED_TEST_DATA not set to true');
+    // Solo ejecutar si estamos en entorno de desarrollo local Y se ha habilitado explícitamente SEED_TEST_DATA
+    if (process.env.SEED_TEST_DATA !== 'true') {
+      console.log('Skipping test data seeding - SEED_TEST_DATA not set to true');
+      return;
+    }
+    
+    // Comprobar si estamos en un entorno de cluster
+    if (process.env.IS_CLUSTER === 'true') {
+      console.log('Skipping test data seeding - running in cluster environment');
+      return;
+    }
+    
+    // Comprobar si estamos en un entorno con persistencia
+    if (process.env.DISABLE_DB_SYNC !== 'true') {
+      console.log('Skipping test data seeding - database has persistence enabled');
       return;
     }
 
@@ -74,11 +86,14 @@ module.exports = {
         balance: 2500.00,
         currency: 'EUR',
         type: 'checking',
-        bank_name: 'Banco Ejemplo',
+        institution: 'Banco Ejemplo',
+        account_number: '****1234',
         is_active: true,
+        color: '#2196F3',
+        icon: 'account_balance',
         metadata: JSON.stringify({
           account_number_last4: '1234',
-          color: '#2196F3'
+          bank_id: 'BKEX001'
         }),
         created_at: new Date(),
         updated_at: new Date()
@@ -90,11 +105,14 @@ module.exports = {
         balance: 15000.00,
         currency: 'EUR',
         type: 'savings',
-        bank_name: 'Banco Ejemplo',
+        institution: 'Banco Ejemplo',
+        account_number: '****5678',
         is_active: true,
+        color: '#4CAF50',
+        icon: 'savings',
         metadata: JSON.stringify({
           account_number_last4: '5678',
-          color: '#4CAF50'
+          interest_rate: 0.5
         }),
         created_at: new Date(),
         updated_at: new Date()
@@ -105,18 +123,29 @@ module.exports = {
         name: 'Tarjeta de Crédito',
         balance: -350.00,
         currency: 'EUR',
-        type: 'credit_card',
-        bank_name: 'Banco Tarjetas',
+        type: 'credit',
+        institution: 'Banco Tarjetas',
+        account_number: '****9012',
         is_active: true,
+        color: '#F44336',
+        icon: 'credit_card',
         metadata: JSON.stringify({
           account_number_last4: '9012',
-          color: '#F44336',
-          credit_limit: 3000
+          credit_limit: 3000,
+          billing_day: 15
         }),
         created_at: new Date(),
         updated_at: new Date()
       }
     ];
+    
+    // Insertar las cuentas
+    try {
+      await queryInterface.bulkInsert('accounts', accounts);
+      console.log('Cuentas de prueba creadas correctamente');
+    } catch (error) {
+      console.error('Error al insertar cuentas:', error.message);
+    }
 
     // 3. Obtener IDs de categorías existentes
     const categories = await queryInterface.sequelize.query(
@@ -133,16 +162,96 @@ module.exports = {
     // Si no hay categorías, crear algunas básicas
     if (Object.keys(categoryMap).length === 0) {
       console.log('No se encontraron categorías, creando categorías básicas...');
-      // Insertar las categorías definidas en el otro seeder
-      await queryInterface.sequelize.query(`
-        INSERT INTO categories (id, name, description, color, icon, is_system, created_at, updated_at)
-        VALUES 
-          ('${uuidv4()}', 'Ingresos', 'Entradas de dinero', '#4CAF50', 'trending_up', true, NOW(), NOW()),
-          ('${uuidv4()}', 'Vivienda', 'Gastos relacionados con el hogar', '#2196F3', 'home', true, NOW(), NOW()),
-          ('${uuidv4()}', 'Alimentación', 'Gastos en comida', '#FF9800', 'restaurant', true, NOW(), NOW()),
-          ('${uuidv4()}', 'Transporte', 'Gastos de transporte', '#3F51B5', 'directions_car', true, NOW(), NOW()),
-          ('${uuidv4()}', 'Ocio', 'Entretenimiento', '#E91E63', 'movie', true, NOW(), NOW())
-      `);
+      
+      // Insertar las categorías definidas con los nuevos campos
+      const defaultCategories = [
+        {
+          id: uuidv4(),
+          name: 'Ingresos',
+          description: 'Entradas de dinero',
+          color: '#4CAF50',
+          icon: 'trending_up',
+          is_system: true,
+          type: 'income',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: uuidv4(),
+          name: 'Vivienda',
+          description: 'Gastos relacionados con el hogar',
+          color: '#2196F3',
+          icon: 'home',
+          is_system: true,
+          type: 'expense',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: uuidv4(),
+          name: 'Alimentación',
+          description: 'Gastos en comida',
+          color: '#FF9800',
+          icon: 'restaurant',
+          is_system: true,
+          type: 'expense',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: uuidv4(),
+          name: 'Transporte',
+          description: 'Gastos de transporte',
+          color: '#3F51B5',
+          icon: 'directions_car',
+          is_system: true,
+          type: 'expense',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: uuidv4(),
+          name: 'Ocio',
+          description: 'Entretenimiento',
+          color: '#E91E63',
+          icon: 'movie',
+          is_system: true,
+          type: 'expense',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: uuidv4(),
+          name: 'Transferencias',
+          description: 'Movimientos entre cuentas',
+          color: '#9C27B0',
+          icon: 'swap_horiz',
+          is_system: true,
+          type: 'transfer',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        {
+          id: uuidv4(),
+          name: 'Inversiones',
+          description: 'Compra de activos',
+          color: '#009688',
+          icon: 'trending_up',
+          is_system: true,
+          type: 'investment',
+          user_id: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      ];
+      
+      await queryInterface.bulkInsert('categories', defaultCategories);
 
       // Obtener las categorías recién creadas
       const newCategories = await queryInterface.sequelize.query(
@@ -176,6 +285,9 @@ module.exports = {
           
         const description = descriptionOptions[Math.floor(Math.random() * descriptionOptions.length)];
         
+        // Crear array de tags (ya no es JSON string)
+        const tags = ['test', description.split(' ')[0].toLowerCase()];
+        
         transactions.push({
           id: uuidv4(),
           user_id: testUserId,
@@ -187,9 +299,14 @@ module.exports = {
           date: randomDate(threeMonthsAgo, today),
           description: description,
           notes: null,
-          tags: JSON.stringify(['test', description.split(' ')[0].toLowerCase()]),
+          tags: tags, // Ahora es un array nativo en PostgreSQL
+          location: JSON.stringify({
+            name: 'Madrid, España',
+            coordinates: { lat: 40.4168, lng: -3.7038 }
+          }),
           status: 'completed',
           is_recurring: Math.random() > 0.8, // 20% de probabilidad de ser recurrente
+          metadata: JSON.stringify({ source: 'test_seed' }),
           created_at: new Date(),
           updated_at: new Date()
         });

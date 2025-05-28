@@ -58,22 +58,75 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
   # En lugar de intentar sincronizar con JS, vamos a crear primero la estructura básica con SQL
   if [ "$FORCE_DB_SYNC" = "true" ]; then
     echo "Asegurando que las tablas principales existan..."
+    # Crear las tablas principales si no existen
+    # Primero crear la tabla de cuentas
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS accounts (
+      id UUID PRIMARY KEY,
+      user_id UUID NOT NULL,
+      name VARCHAR(100) NOT NULL,
+      type VARCHAR(20) DEFAULT 'checking',
+      institution VARCHAR(100),
+      account_number VARCHAR(50),
+      balance DECIMAL(15,2) NOT NULL DEFAULT 0,
+      currency CHAR(3) NOT NULL DEFAULT 'EUR',
+      is_active BOOLEAN DEFAULT true,
+      color VARCHAR(7),
+      icon VARCHAR(50),
+      last_sync TIMESTAMP,
+      notes TEXT,
+      metadata JSONB,
+      created_at TIMESTAMP NOT NULL,
+      updated_at TIMESTAMP NOT NULL
+    );"
+    
+    # Crear la tabla de categorías
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS categories (
+      id UUID PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      description TEXT,
+      color VARCHAR(7),
+      icon VARCHAR(50),
+      parent_id UUID,
+      is_system BOOLEAN DEFAULT false,
+      user_id UUID,
+      type VARCHAR(20) DEFAULT 'expense',
+      metadata JSONB,
+      created_at TIMESTAMP NOT NULL,
+      updated_at TIMESTAMP NOT NULL
+    );"
+    
     # Crear la tabla transactions con todas las columnas necesarias
     PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS transactions (
       id UUID PRIMARY KEY, 
       user_id UUID NOT NULL, 
       account_id UUID,
-      amount DECIMAL(15,2) NOT NULL, 
-      concept VARCHAR(255), 
-      description TEXT,
-      notes TEXT,
       category_id UUID,
       subcategory_id UUID,
+      amount DECIMAL(15,2) NOT NULL, 
+      currency CHAR(3) NOT NULL DEFAULT 'EUR',
       date TIMESTAMP NOT NULL, 
-      tags JSONB,
-      location JSONB,
+      description TEXT,
+      notes TEXT,
       is_recurring BOOLEAN DEFAULT false,
+      tags TEXT[],
+      location JSONB,
+      status VARCHAR(20) DEFAULT 'completed',
+      metadata JSONB,
+      import_id UUID,
       created_at TIMESTAMP NOT NULL, 
+      updated_at TIMESTAMP NOT NULL
+    );"
+    
+    # Crear la tabla de tasas de cambio
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS exchange_rates (
+      id UUID PRIMARY KEY,
+      source_currency CHAR(3) NOT NULL,
+      target_currency CHAR(3) NOT NULL,
+      rate DECIMAL(20,10) NOT NULL,
+      date DATE NOT NULL,
+      source VARCHAR(50) DEFAULT 'manual',
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP NOT NULL,
       updated_at TIMESTAMP NOT NULL
     );"
     echo "Estructura básica de tablas creada."
@@ -88,10 +141,12 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     echo "Ejecutando semillas de base de datos..."
     cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME npx sequelize-cli db:seed:all
     
-    # Verificar si se deben cargar datos de prueba para desarrollo
-    if [ "$SEED_TEST_DATA" = "true" ] && [ "$NODE_ENV" = "development" ]; then
-      echo "Cargando datos de prueba para desarrollo..."
-      cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME npx sequelize-cli db:seed --seed 20230527-dev-test-data.js
+    # Verificar si se deben cargar datos de prueba solo en entorno local sin persistencia
+    if [ "$SEED_TEST_DATA" = "true" ] && [ "$DISABLE_DB_SYNC" = "true" ] && [ "$IS_CLUSTER" != "true" ]; then
+      echo "Cargando datos de prueba para desarrollo local sin persistencia..."
+      cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME IS_CLUSTER=$IS_CLUSTER DISABLE_DB_SYNC=$DISABLE_DB_SYNC SEED_TEST_DATA=$SEED_TEST_DATA npx sequelize-cli db:seed --seed 20230527-dev-test-data.js
+    else
+      echo "Omitiendo la carga de datos de prueba - Este entorno tiene persistencia o es un cluster"
     fi
   fi
 fi

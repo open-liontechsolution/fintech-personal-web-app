@@ -14,10 +14,13 @@ interface CategoryAttributes {
   metadata: any | null; // Campo JSONB para metadatos flexibles
   createdAt: Date;
   updatedAt: Date;
+  // Nuevos campos
+  userId: string | null; // Usuario propietario (null para categorías del sistema)
+  type: 'income' | 'expense' | 'transfer' | 'investment'; // Tipo de transacción
 }
 
 // Interface for Category creation attributes
-interface CategoryCreationAttributes extends Optional<CategoryAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'color' | 'icon' | 'parentId' | 'metadata' | 'isSystem'> {}
+interface CategoryCreationAttributes extends Optional<CategoryAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'color' | 'icon' | 'parentId' | 'metadata' | 'isSystem' | 'userId'> {}
 
 class Category extends Model<CategoryAttributes, CategoryCreationAttributes> implements CategoryAttributes {
   public id!: string;
@@ -30,6 +33,8 @@ class Category extends Model<CategoryAttributes, CategoryCreationAttributes> imp
   public metadata!: any | null;
   public createdAt!: Date;
   public updatedAt!: Date;
+  public userId!: string | null;
+  public type!: 'income' | 'expense' | 'transfer' | 'investment';
 
   // Obtener categorías secundarias
   public async getSubcategories() {
@@ -93,6 +98,24 @@ Category.init(
     metadata: {
       type: DataTypes.JSONB, // JSONB más eficiente que JSON en PostgreSQL
       allowNull: true,
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'user_id',
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onDelete: 'CASCADE'
+    },
+    type: {
+      type: DataTypes.ENUM('income', 'expense', 'transfer', 'investment'),
+      allowNull: false,
+      defaultValue: 'expense',
+      validate: {
+        isIn: [['income', 'expense', 'transfer', 'investment']]
+      }
     },
     createdAt: {
       type: DataTypes.DATE,

@@ -2,6 +2,8 @@ import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../config/database';
 import { v4 as uuidv4 } from 'uuid';
 import User from './User';
+import Category from './Category';
+import Account from './Account';
 
 // Interface for Transaction attributes
 interface TransactionAttributes {
@@ -22,10 +24,11 @@ interface TransactionAttributes {
   createdAt: Date;
   updatedAt: Date;
   importId: string | null;
+  metadata: any | null; // Campo adicional para metadatos flexibles
 }
 
 // Interface for Transaction creation attributes
-interface TransactionCreationAttributes extends Optional<TransactionAttributes, 'id' | 'createdAt' | 'updatedAt' | 'notes' | 'isRecurring' | 'importId' | 'categoryId' | 'subcategoryId' | 'description'> {}
+interface TransactionCreationAttributes extends Optional<TransactionAttributes, 'id' | 'createdAt' | 'updatedAt' | 'notes' | 'isRecurring' | 'importId' | 'categoryId' | 'subcategoryId' | 'description' | 'tags' | 'location' | 'metadata'> {}
 
 class Transaction extends Model<TransactionAttributes, TransactionCreationAttributes> implements TransactionAttributes {
   public id!: string;
@@ -45,12 +48,23 @@ class Transaction extends Model<TransactionAttributes, TransactionCreationAttrib
   public createdAt!: Date;
   public updatedAt!: Date;
   public importId!: string | null;
+  public metadata!: any | null;
   
   // Método para obtener el valor en otra moneda
   public async getAmountInCurrency(targetCurrency: string): Promise<number> {
-    // Aquí se implementaría la conversión usando tasas de cambio
-    // Para un MVP podríamos usar una API externa o tasas fijas
-    return this.amount; // Versión simplificada por ahora
+    if (this.currency === targetCurrency) {
+      return this.amount;
+    }
+    
+    // Import dynamically to avoid circular dependency
+    const { ExchangeRate } = require('./index');
+    const rate = await ExchangeRate.getLatestRate(this.currency, targetCurrency);
+    
+    if (!rate) {
+      throw new Error(`No exchange rate found for ${this.currency} to ${targetCurrency}`);
+    }
+    
+    return this.amount * rate.rate;
   }
   
   // Método para categorizar automáticamente la transacción
@@ -132,7 +146,7 @@ Transaction.init(
       }
     },
     tags: {
-      type: DataTypes.JSONB,
+      type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: true,
       defaultValue: []
     },
@@ -143,7 +157,10 @@ Transaction.init(
     status: {
       type: DataTypes.ENUM('pending', 'completed', 'reconciled'),
       allowNull: false,
-      defaultValue: 'completed'
+      defaultValue: 'completed',
+      validate: {
+        isIn: [['pending', 'completed', 'reconciled']]
+      }
     },
     description: {
       type: DataTypes.STRING(255),
@@ -173,16 +190,56 @@ Transaction.init(
       allowNull: true,
       field: 'import_id',
     },
+    metadata: {
+      type: DataTypes.JSONB,
+      allowNull: true
+    },
   },
   {
     sequelize,
     tableName: 'transactions',
     modelName: 'Transaction',
     underscored: true,
+    indexes: [
+      // Index for user's transaction timeline
+      {
+        name: 'transactions_user_date_idx',
+        fields: ['user_id', 'date']
+      },
+      // Index for account transaction history
+      {
+        name: 'transactions_account_date_idx',
+        fields: ['account_id', 'date']
+      },
+      // Index for financial reporting by category
+      {
+        name: 'transactions_category_date_idx',
+        fields: ['category_id', 'date']
+      },
+      // Index for amount-based queries and reporting
+      {
+        name: 'transactions_amount_date_idx',
+        fields: ['amount', 'date']
+      },
+      // Index for status filtering
+      {
+        name: 'transactions_status_idx',
+        fields: ['status']
+      },
+      // Index for tags searching
+      {
+        name: 'transactions_tags_idx',
+        fields: ['tags'],
+        using: 'gin'
+      }
+    ],
   }
 );
 
 // Define associations
-Transaction.belongsTo(User, { foreignKey: 'userId' });
+Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Transaction.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
+Transaction.belongsTo(Category, { foreignKey: 'subcategoryId', as: 'subcategory' });
+Transaction.belongsTo(Account, { foreignKey: 'accountId', as: 'account' });
 
 export default Transaction;
