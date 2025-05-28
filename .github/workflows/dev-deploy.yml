@@ -14,13 +14,6 @@ env:
   NAMESPACE: fintech-dev
 
 jobs:
-  verdaccio-access-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Test access to Verdaccio package
-        run: |
-          echo "Testing package download..."
-          curl -v -I https://verdaccio.liontechsolution.com/yocto-queue/-/yocto-queue-0.1.0.tgz
   validate:
     runs-on: ubuntu-latest
     steps:
