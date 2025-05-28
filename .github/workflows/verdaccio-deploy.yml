@@ -24,21 +24,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Configurar credenciales para el registro npm privado usando autenticación básica
+      # Configurar credenciales para el registro npm privado
       - name: Setup .npmrc for Verdaccio
         run: |
-          # Crear credenciales en formato base64 (usuario:contraseña)
-          BASIC_AUTH=$(echo -n "${{ secrets.VERDACCIO_USERNAME }}:${{ secrets.VERDACCIO_PASSWORD }}" | base64)
-          
-          # Configurar .npmrc con autenticación básica
           echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
-          echo "//verdaccio.liontechsolution.com/:_auth=$BASIC_AUTH" >> .npmrc
+          echo "//verdaccio.liontechsolution.com/:_authToken=\${NODE_AUTH_TOKEN}" >> .npmrc
           echo "always-auth=true" >> .npmrc
-          
-          # Mostrar .npmrc (sin las credenciales para seguridad)
-          echo "Configuración de .npmrc (sin credenciales):"
-          grep -v "_auth" .npmrc
+          cat .npmrc
 
+      # Configurar Docker para usar las credenciales de npm
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -56,6 +50,7 @@ jobs:
           echo "IMAGE_TAG=dev-${SHORT_SHA}" >> $GITHUB_ENV
           echo "IMAGE_TAG=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
+      # Construir imagen Docker con el token de autenticación npm
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -68,10 +63,8 @@ jobs:
             org.opencontainers.image.version=${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Pasar las credenciales de Verdaccio como argumentos de construcción
           build-args: |
-            VERDACCIO_USERNAME=${{ secrets.VERDACCIO_USERNAME }}
-            VERDACCIO_PASSWORD=${{ secrets.VERDACCIO_PASSWORD }}
+            NODE_AUTH_TOKEN=${{ secrets.NPM_TOKEN }}
 
   cleanup-old-images:
     needs: build-and-push
