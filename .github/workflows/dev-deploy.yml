@@ -25,31 +25,33 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org/'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      # Configurar .npmrc para npm
+      # Configurar .npmrc optimizado para CI
       - name: Configure npm
         run: |
-          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
-          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
+          echo "fetch-retries=5" >> .npmrc
+          echo "fetch-retry-factor=2" >> .npmrc
+          echo "fetch-retry-mintimeout=10000" >> .npmrc
+          echo "fetch-retry-maxtimeout=60000" >> .npmrc
 
-      # Regenerar package-lock.json con el registro público
-      - name: Regenerate package-lock.json
+      # Intentar obtener yocto-queue directamente
+      - name: Prefetch problematic package
         run: |
-          # Renombrar el package-lock.json actual para respaldo
-          mv package-lock.json package-lock.json.bak
-          # Instalar solo las dependencias definidas en package.json (regenera package-lock.json)
-          npm install --package-lock-only --no-fund
-          # Verificar que se regeneró correctamente
-          if [ ! -f "package-lock.json" ]; then
-            echo "Error: No se pudo regenerar package-lock.json"
-            mv package-lock.json.bak package-lock.json
-            exit 1
+          mkdir -p node_modules/yocto-queue
+          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/ || true
+          if [ -f "yocto-queue-0.1.0.tgz" ]; then
+            echo "Paquete descargado correctamente"
+            mkdir -p $HOME/.npm-global/
+            cp yocto-queue-0.1.0.tgz $HOME/.npm-global/
           fi
 
       - name: Install dependencies
         run: npm ci
+        env:
+          npm_config_cache: $HOME/.npm-global
 
       - name: Lint code
         run: npm run lint
@@ -66,31 +68,33 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org/'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      # Configurar .npmrc para npm
+      # Configurar .npmrc optimizado para CI
       - name: Configure npm
         run: |
-          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
-          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
+          echo "fetch-retries=5" >> .npmrc
+          echo "fetch-retry-factor=2" >> .npmrc
+          echo "fetch-retry-mintimeout=10000" >> .npmrc
+          echo "fetch-retry-maxtimeout=60000" >> .npmrc
 
-      # Regenerar package-lock.json con el registro público
-      - name: Regenerate package-lock.json
+      # Intentar obtener yocto-queue directamente
+      - name: Prefetch problematic package
         run: |
-          # Renombrar el package-lock.json actual para respaldo
-          mv package-lock.json package-lock.json.bak
-          # Instalar solo las dependencias definidas en package.json (regenera package-lock.json)
-          npm install --package-lock-only --no-fund
-          # Verificar que se regeneró correctamente
-          if [ ! -f "package-lock.json" ]; then
-            echo "Error: No se pudo regenerar package-lock.json"
-            mv package-lock.json.bak package-lock.json
-            exit 1
+          mkdir -p node_modules/yocto-queue
+          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/ || true
+          if [ -f "yocto-queue-0.1.0.tgz" ]; then
+            echo "Paquete descargado correctamente"
+            mkdir -p $HOME/.npm-global/
+            cp yocto-queue-0.1.0.tgz $HOME/.npm-global/
           fi
 
       - name: Install dependencies
         run: npm ci
+        env:
+          npm_config_cache: $HOME/.npm-global
 
       - name: Run tests
         run: npm test
@@ -112,27 +116,27 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org/'
+          registry-url: 'https://verdaccio.liontechsolution.com/'
 
       # Configurar .npmrc para que Docker lo use durante la construcción
       - name: Configure npm
         run: |
-          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://verdaccio.liontechsolution.com/" > .npmrc
           echo "always-auth=false" >> .npmrc
-          echo "@fintech-personal:registry=https://verdaccio.liontechsolution.com/" >> .npmrc
+          echo "fetch-retries=5" >> .npmrc
+          echo "fetch-retry-factor=2" >> .npmrc
+          echo "fetch-retry-mintimeout=10000" >> .npmrc
+          echo "fetch-retry-maxtimeout=60000" >> .npmrc
 
-      # Regenerar package-lock.json con el registro público
-      - name: Regenerate package-lock.json
+      # Intentar obtener yocto-queue directamente
+      - name: Prefetch problematic package
         run: |
-          # Renombrar el package-lock.json actual para respaldo
-          mv package-lock.json package-lock.json.bak
-          # Instalar solo las dependencias definidas en package.json (regenera package-lock.json)
-          npm install --package-lock-only --no-fund
-          # Verificar que se regeneró correctamente
-          if [ ! -f "package-lock.json" ]; then
-            echo "Error: No se pudo regenerar package-lock.json"
-            mv package-lock.json.bak package-lock.json
-            exit 1
+          mkdir -p node_modules/yocto-queue
+          npm pack yocto-queue@0.1.0 --registry=https://registry.npmjs.org/ || true
+          if [ -f "yocto-queue-0.1.0.tgz" ]; then
+            echo "Paquete descargado correctamente"
+            mkdir -p $HOME/.npm-global/
+            cp yocto-queue-0.1.0.tgz $HOME/.npm-global/
           fi
 
       - name: Set up Docker Buildx
