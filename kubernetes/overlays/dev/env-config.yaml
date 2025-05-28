@@ -7,7 +7,9 @@ spec:
     spec:
       containers:
         - name: fintech-webapp
+          # Reemplazar todas las variables de entorno para evitar conflictos
           env:
+            # Variables desde ConfigMap
             - name: NODE_ENV
               valueFrom:
                 configMapKeyRef:
@@ -23,3 +25,6 @@ spec:
                 configMapKeyRef:
                   name: fintech-webapp-config
                   key: DISABLE_DB_SYNC
+            # Puerto fijo
+            - name: PORT
+              value: "3000"
