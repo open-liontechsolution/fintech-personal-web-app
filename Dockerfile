@@ -3,19 +3,8 @@ FROM node:18-alpine AS builder
 # Crear directorio de la aplicación
 WORKDIR /app
 
-# Definir argumentos para autenticación con npm
-ARG VERDACCIO_USERNAME
-ARG VERDACCIO_PASSWORD
-
 # Copiar archivos de dependencias y configuración de npm
 COPY package*.json .npmrc ./
-
-# Configurar .npmrc con las credenciales proporcionadas
-RUN if [ -n "$VERDACCIO_USERNAME" ] && [ -n "$VERDACCIO_PASSWORD" ]; then \
-    BASIC_AUTH=$(echo -n "$VERDACCIO_USERNAME:$VERDACCIO_PASSWORD" | base64) && \
-    echo "//verdaccio.liontechsolution.com/:_auth=$BASIC_AUTH" >> .npmrc && \
-    echo "always-auth=true" >> .npmrc; \
-    fi
 
 # Instalar dependencias de sistema necesarias para compilar bcrypt
 RUN apk add --no-cache make gcc g++ python3 linux-headers
