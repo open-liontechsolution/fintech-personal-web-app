@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: webapp
+  name: fintech-webapp
 spec:
   template:
     spec:
       containers:
-        - name: webapp
+        - name: fintech-webapp
           env:
             - name: NODE_ENV
               valueFrom:
