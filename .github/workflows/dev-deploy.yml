@@ -27,11 +27,18 @@ jobs:
           cache: 'npm'
           registry-url: 'https://verdaccio.liontechsolution.com/'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install ESLint dependencies only
+        run: |
+          npm install --no-save eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser typescript
+          # Copiar los node_modules instalados a un directorio para cache rápido
+          cp -r node_modules node_modules_eslint
 
       - name: Lint code
         run: npm run lint
+        
+      - name: Install full dependencies
+        run: npm ci
+        # Esto solo se ejecutará si el linting ha pasado correctamente
   
   test:
     needs: validate
