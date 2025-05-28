@@ -27,10 +27,7 @@ spec:
             memory: "256Mi"
             cpu: "500m"
         env:
-        - name: NODE_ENV
-          value: "development"
-        - name: PORT
-          value: "3000"
+        # Variables de entorno básicas - las específicas por entorno se definen en los overlays
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
