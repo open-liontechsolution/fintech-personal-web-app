@@ -4,7 +4,9 @@ on:
   push:
     branches: [ develop ]
     paths-ignore:
-      - 'kubernetes/**'
+      - 'helm/**'
+      - 'README.md'
+      - '.gitignore'
   workflow_dispatch:
 
 env:
@@ -214,42 +216,38 @@ jobs:
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Update ArgoCD application manifest
+      - name: Update Helm values for dev environment
         run: |
-          # Actualizar la versión de la imagen en el manifiesto de ArgoCD
-          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-          REPO_OWNER="${{ github.repository_owner }}"
+          # Obtener la etiqueta de imagen del paso anterior
           IMAGE_TAG="${{ steps.imagetag.outputs.IMAGE_TAG }}"
           
-          # Reemplazar placeholders en el archivo application.yaml
-          sed -i "s|{{REPO_URL}}|${REPO_URL}|g" kubernetes/argocd/application.yaml
-          sed -i "s|{{REPO_OWNER}}|${REPO_OWNER}|g" kubernetes/argocd/application.yaml
-          sed -i "s|{{IMAGE_TAG}}|${IMAGE_TAG}|g" kubernetes/argocd/application.yaml
+          # Verificar que la etiqueta no esté vacía
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "ERROR: Variable IMAGE_TAG está vacía"
+            exit 1
+          fi
           
-          # También actualizar la imagen en el kustomization de desarrollo
-          if [ -f "kubernetes/overlays/dev/kustomization.yaml" ]; then
-            # Verificar que IMAGE_TAG no esté vacío antes de actualizar
-            if [ -n "${IMAGE_TAG}" ]; then
-              # Usar una expresión sed más precisa para asegurar que newTag tenga un valor
-              sed -i "s|newTag:.*|newTag: ${IMAGE_TAG}|g" kubernetes/overlays/dev/kustomization.yaml
-              # Verificar que se haya actualizado correctamente
-              grep "newTag:" kubernetes/overlays/dev/kustomization.yaml
-            else
-              echo "ERROR: Variable IMAGE_TAG está vacía. No se actualizará el archivo kustomization.yaml"
-              exit 1
-            fi
+          # Actualizar la etiqueta de imagen en el archivo values-dev.yaml de Helm
+          if [ -f "helm/environments/dev/values-dev.yaml" ]; then
+            # Actualizar la etiqueta de imagen usando yq
+            echo "Actualizando la etiqueta de imagen en helm/environments/dev/values-dev.yaml a: ${IMAGE_TAG}"
+            
+            # Usar sed para actualizar el tag
+            sed -i "s|tag: \".*\"|tag: \"${IMAGE_TAG}\"|" helm/environments/dev/values-dev.yaml
+            
+            # Verificar que se haya actualizado correctamente
+            grep "tag:" helm/environments/dev/values-dev.yaml
+          else
+            echo "ERROR: No se encontró el archivo helm/environments/dev/values-dev.yaml"
+            exit 1
           fi
           
           # Confirmar y subir los cambios
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git add kubernetes/argocd/application.yaml
+          git add helm/environments/dev/values-dev.yaml
           
-          if [ -f "kubernetes/overlays/dev/kustomization.yaml" ]; then
-            git add kubernetes/overlays/dev/kustomization.yaml
-          fi
-          
-          git commit -m "Update ArgoCD configuration for image tag ${IMAGE_TAG}"
+          git commit -m "Update image tag to ${IMAGE_TAG} for dev environment"
           git push origin develop
           
       - name: Wait for ArgoCD sync
