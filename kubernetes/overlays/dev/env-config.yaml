@@ -28,3 +28,52 @@ spec:
             # Puerto fijo
             - name: PORT
               value: "3000"
+            # Variables para la conexión a PostgreSQL (primario y lectura)
+            - name: DB_PRIMARY_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_primary_host
+            # Variable estándar para compatibilidad con Sequelize
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_primary_host
+            - name: DB_READ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_read_host
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_port
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_name
+            - name: DB_SCHEMA
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_schema
+            # Variable adicional para configuración de PostgreSQL
+            - name: POSTGRES_SCHEMA
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: db_schema
+            # Migraciones
+            - name: RUN_MIGRATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: RUN_MIGRATIONS
+            - name: RUN_SEEDS
+              valueFrom:
+                configMapKeyRef:
+                  name: fintech-webapp-config
+                  key: RUN_SEEDS

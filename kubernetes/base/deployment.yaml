@@ -66,6 +66,8 @@ spec:
             configMapKeyRef:
               name: fintech-webapp-config
               key: db_schema
+        - name: NODE_ENV
+          value: "development"
         # Credenciales de usuario normal para operaciones regulares de la aplicación
         - name: DB_USER
           valueFrom:
