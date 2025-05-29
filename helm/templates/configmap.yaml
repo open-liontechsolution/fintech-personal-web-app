@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.appName }}-config
+  labels:
+    {{- include "fintech-webapp.labels" . | nindent 4 }}
+data:
+  db_primary_host: {{ .Values.config.dbPrimaryHost | quote }}
+  db_read_host: {{ .Values.config.dbReadHost | quote }}
+  db_port: {{ .Values.config.dbPort | quote }}
+  db_name: {{ .Values.config.dbName | quote }}
+  db_schema: {{ .Values.config.dbSchema | quote }}
+  NODE_ENV: {{ .Values.config.nodeEnv | quote }}
+  {{- if .Values.config.logLevel }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  {{- end }}
+  # Variables para control de migraciones
+  DISABLE_DB_SYNC: {{ .Values.config.disableDbSync | quote }}
+  RUN_MIGRATIONS: {{ .Values.config.runMigrations | quote }}
+  RUN_SEEDS: {{ .Values.config.runSeeds | quote }}

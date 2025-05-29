@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fintech-webapp-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/open-liontechsolution/fintech-personal-web-app.git
+    targetRevision: HEAD
+    path: helm
+    helm:
+      valueFiles:
+        - environments/values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fintech-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

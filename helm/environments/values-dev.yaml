@@ -1,0 +1,44 @@
+# Dev environment values for fintech-webapp.
+# These values override the default ones from values.yaml
+
+replicaCount: 1
+
+image:
+  tag: "latest"
+  pullPolicy: Always
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+config:
+  # Use development environment configuration
+  nodeEnv: "development"
+  logLevel: "debug"
+  # Database configuration for dev environment
+  dbPrimaryHost: "postgresql-primary.generic.svc.cluster.local"
+  dbReadHost: "postgresql-read.generic.svc.cluster.local"
+  dbName: "fintech_db"
+  dbSchema: "fintech"
+  # Control de migraciones y sincronización de BD para desarrollo
+  disableDbSync: "false"
+  runMigrations: "false"
+  runSeeds: "false"
+
+# These values would be replaced by actual secrets in a real deployment
+# For development, these are placeholders
+secrets:
+  dbUser: "dev_user"
+  dbPassword: "dev_password"
+  dbAdminUser: "dev_admin"
+  dbAdminPassword: "dev_admin_password"
+  jwtSecret: "dev-jwt-secret-for-development-only"
+  rabbitmqUrl: "amqp://guest:guest@rabbitmq:5672"
+
+# Development environment might have specific network policy requirements
+postgresNetworkPolicy:
+  namespace: "generic"

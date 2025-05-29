@@ -1,0 +1,70 @@
+# Default values for fintech-webapp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Nombre de la aplicación usado para nombrar los recursos
+appName: "fintech-webapp"
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/open-liontechsolution/fintech-personal-web-app
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+containerPort: 3000
+
+nameOverride: ""
+fullnameOverride: ""
+appPartOf: "fintech-personal"
+
+service:
+  type: ClusterIP
+  port: 80
+  # nodePort: 30000 # Only used if service.type is NodePort
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "500m"
+
+config:
+  dbPrimaryHost: "postgresql-primary.generic.svc.cluster.local"
+  dbReadHost: "postgresql-read.generic.svc.cluster.local"
+  dbPort: "5432"
+  dbName: "fintech_db"
+  dbSchema: "fintech"
+  nodeEnv: "production"
+  # logLevel: "info"
+  disableDbSync: "false"
+  runMigrations: "false"
+  runSeeds: "false"
+
+secrets:
+  dbUser: "user"
+  dbPassword: "password"
+  dbAdminUser: "admin"
+  dbAdminPassword: "adminpassword"
+  jwtSecret: ""
+  rabbitmqUrl: ""
+
+postgresNetworkPolicy:
+  namespace: "generic"
+
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5

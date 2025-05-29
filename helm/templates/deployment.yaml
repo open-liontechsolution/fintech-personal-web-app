@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName }}
+  labels:
+    app: {{ .Values.appName }}
+    app.kubernetes.io/name: {{ .Values.appName }}
+    app.kubernetes.io/part-of: {{ .Values.appPartOf | default "fintech-personal" }}
+    {{- include "fintech-webapp.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+      {{- include "fintech-webapp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appName }}
+        {{- include "fintech-webapp.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.containerPort }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        env:
+        # Variables de entorno para la base de datos primaria (escritura)
+        - name: DB_PRIMARY_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_primary_host
+        # Variable de entorno estándar para compatibilidad con Sequelize
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_primary_host
+        # Variables de entorno para la base de datos de lectura
+        - name: DB_READ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_read_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_name
+        - name: DB_SCHEMA
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_schema
+        # Variables adicionales para configuración de PostgreSQL
+        - name: POSTGRES_SCHEMA
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_schema
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: NODE_ENV
+        {{- if .Values.config.logLevel }}
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: LOG_LEVEL
+        {{- end }}
+        # Puerto fijo
+        - name: PORT
+          value: "{{ .Values.containerPort }}"
+        # Credenciales de usuario normal para operaciones regulares de la aplicación
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_password
+        # Credenciales de usuario admin para migraciones
+        - name: DB_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_admin_user
+        - name: DB_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_admin_password
+        {{- if .Values.secrets.jwtSecret }}
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: jwt_secret
+        {{- end }}
+        {{- if .Values.secrets.rabbitmqUrl }}
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: rabbitmq_url
+        {{- end }}
+        # Control de migraciones y sincronización de BD
+        - name: DISABLE_DB_SYNC
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: DISABLE_DB_SYNC
+        - name: RUN_MIGRATIONS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: RUN_MIGRATIONS
+        - name: RUN_SEEDS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: RUN_SEEDS
+        {{- with .Values.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
