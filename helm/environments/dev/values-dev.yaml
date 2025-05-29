@@ -4,7 +4,7 @@
 replicaCount: 1
 
 image:
-  tag: "dev-3e7082d"
+  tag: "dev-9a7bf2b"
   pullPolicy: Always
 
 resources:
