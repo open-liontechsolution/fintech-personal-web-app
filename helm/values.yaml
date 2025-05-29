@@ -44,13 +44,9 @@ config:
   runMigrations: "false"
   runSeeds: "false"
 
-secrets:
-  dbUser: "user"
-  dbPassword: "password"
-  dbAdminUser: "admin"
-  dbAdminPassword: "adminpassword"
-  jwtSecret: ""
-  rabbitmqUrl: ""
+# Los secrets no se incluyen aquí por razones de seguridad
+# Están definidos en archivos separados en el directorio /secrets
+# que no deben ser subidos al control de versiones
 
 postgresNetworkPolicy:
   namespace: "generic"

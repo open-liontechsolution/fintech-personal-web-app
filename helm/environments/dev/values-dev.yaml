@@ -29,15 +29,9 @@ config:
   runMigrations: "false"
   runSeeds: "false"
 
-# These values would be replaced by actual secrets in a real deployment
-# For development, these are placeholders
-secrets:
-  dbUser: "dev_user"
-  dbPassword: "dev_password"
-  dbAdminUser: "dev_admin"
-  dbAdminPassword: "dev_admin_password"
-  jwtSecret: "dev-jwt-secret-for-development-only"
-  rabbitmqUrl: "amqp://guest:guest@rabbitmq:5672"
+# Los secrets no se incluyen aquí por razones de seguridad
+# Están definidos en archivos separados en el directorio /helm/secrets
+# Usar el archivo secrets-dev.yaml para el entorno de desarrollo
 
 # Development environment might have specific network policy requirements
 postgresNetworkPolicy:

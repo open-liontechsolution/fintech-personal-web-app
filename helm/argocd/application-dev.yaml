@@ -11,7 +11,8 @@ spec:
     path: helm
     helm:
       valueFiles:
-        - environments/values-dev.yaml
+        - environments/dev/values-dev.yaml
+        - environments/dev/sealedsecrets-values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: fintech-dev

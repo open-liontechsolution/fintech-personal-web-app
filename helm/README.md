@@ -8,14 +8,15 @@ Este Helm chart permite desplegar la aplicación web de Fintech en un cluster de
 helm/
 ├── Chart.yaml                 # Información básica del chart
 ├── values.yaml                # Valores por defecto para todos los entornos
-├── environments/
-│   └── values-dev.yaml        # Valores específicos para el entorno dev
+├── environments/              # Valores específicos por entorno
+│   └── dev/                  # Configuración para entorno de desarrollo
+│       ├── values-dev.yaml     # Valores para el entorno dev
+│       └── sealedsecret-dev.yaml # SealedSecret encriptado para dev
 └── templates/
     ├── _helpers.tpl           # Plantilla con funciones auxiliares
     ├── configmap.yaml         # ConfigMap con la configuración de la aplicación
     ├── deployment.yaml        # Deployment para la aplicación
     ├── postgres-network-policy.yaml # Política de red para acceso a PostgreSQL
-    ├── secrets.yaml           # Secretos para la aplicación
     └── service.yaml           # Servicio para exponer la aplicación
 ```
 
@@ -28,9 +29,21 @@ helm/
 
 ### Instalación en Entorno Dev
 
+1. Primero aplicar el SealedSecret (solo es necesario hacerlo una vez o cuando cambie):
+
 ```bash
-helm install fintech-webapp ./helm -f ./helm/environments/values-dev.yaml -n fintech-dev
+kubectl apply -f ./helm/environments/dev/sealedsecret-dev.yaml
 ```
+
+2. Luego instalar o actualizar el Helm chart:
+
+```bash
+helm install fintech-webapp ./helm \
+  -f ./helm/environments/dev/values-dev.yaml \
+  -n fintech-dev
+```
+
+> **IMPORTANTE**: Estamos utilizando **SealedSecrets** para la gestión segura de secretos. Los SealedSecrets son secretos encriptados que pueden almacenarse de forma segura en repositorios de código y solo pueden ser descifrados por el controlador de SealedSecrets dentro del cluster.
 
 ## Configuración
 

@@ -38,3 +38,7 @@ Thumbs.db
 
 # Directorios específicos de la aplicación
 uploads/
+
+# sealed secrets
+secret-*
+secrets-*
