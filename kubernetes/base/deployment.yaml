@@ -33,6 +33,12 @@ spec:
             configMapKeyRef:
               name: fintech-webapp-config
               key: db_primary_host
+        # Variable de entorno estándar para compatibilidad con Sequelize
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: db_primary_host
         # Variables de entorno para la base de datos de lectura
         - name: DB_READ_HOST
           valueFrom:
@@ -61,7 +67,10 @@ spec:
               name: fintech-webapp-config
               key: db_schema
         - name: NODE_ENV
-          value: "development"
+          valueFrom:
+            configMapKeyRef:
+              name: fintech-webapp-config
+              key: NODE_ENV
         # Credenciales de usuario normal para operaciones regulares de la aplicación
         - name: DB_USER
           valueFrom:
