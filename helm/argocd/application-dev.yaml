@@ -4,7 +4,7 @@ metadata:
   name: fintech-webapp-dev
   namespace: argocd
 spec:
-  project: default
+  project: fintech-dev
   source:
     repoURL: https://github.com/open-liontechsolution/fintech-personal-web-app.git
     targetRevision: develop
