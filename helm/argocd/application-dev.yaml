@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/open-liontechsolution/fintech-personal-web-app.git
-    targetRevision: HEAD
+    targetRevision: develop
     path: helm
     helm:
       valueFiles:

@@ -104,20 +104,18 @@ spec:
             secretKeyRef:
               name: {{ .Values.appName }}-secrets
               key: db_admin_password
-        {{- if .Values.secrets.jwtSecret }}
+        # JWT Secret para autenticación
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
               name: {{ .Values.appName }}-secrets
               key: jwt_secret
-        {{- end }}
-        {{- if .Values.secrets.rabbitmqUrl }}
+        # URL de conexión a RabbitMQ
         - name: RABBITMQ_URL
           valueFrom:
             secretKeyRef:
               name: {{ .Values.appName }}-secrets
               key: rabbitmq_url
-        {{- end }}
         # Control de migraciones y sincronización de BD
         - name: DISABLE_DB_SYNC
           valueFrom:
