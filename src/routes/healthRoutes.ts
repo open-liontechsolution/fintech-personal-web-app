@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import sequelize from '../config/database';
+import logger from '../config/logger';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router.get('/health', async (req: Request, res: Response) => {
     await sequelize.authenticate();
     
     // Si todo está bien, devuelve un 200 OK
+    logger.debug('Health check passed, database connection OK');
     return res.status(200).json({
       status: 'UP',
       timestamp: new Date().toISOString(),
@@ -18,7 +20,7 @@ router.get('/health', async (req: Request, res: Response) => {
     });
   } catch (error) {
     // Si hay un error con la base de datos, devuelve un 503 Service Unavailable
-    console.error('Health check failed:', error);
+    logger.error(`Health check failed: ${error}`);
     
     // Proper error handling with type checking
     const errorMessage = error instanceof Error 

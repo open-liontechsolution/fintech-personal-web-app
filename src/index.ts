@@ -1,5 +1,6 @@
 import app from './app';
 import sequelize from './config/database';
+import logger from './config/logger';
 
 // Set port
 const PORT = process.env.PORT || 3000;
@@ -12,30 +13,31 @@ const startServer = async () => {
       // Si FORCE_DB_SYNC es true, forzar la creación de tablas (util para PostgreSQL)
       if (process.env.FORCE_DB_SYNC === 'true') {
         await sequelize.sync({ force: true });
-        console.log('Database forcefully synchronized (tables recreated)');
+        logger.info('Database forcefully synchronized (tables recreated)');
       } else {
         await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-        console.log('Database synchronized successfully');
+        logger.info('Database synchronized successfully');
       }
     } else {
-      console.log('Database synchronization skipped (DISABLE_DB_SYNC=true)');
+      logger.info('Database synchronization skipped (DISABLE_DB_SYNC=true)');
     }
 
     // Start Express server
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
-      console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
+      logger.info(`🚀 Iniciando la aplicación Fintech Personal Web App...`);
+      logger.info(`✅ Server running on port ${PORT}`);
+      logger.info(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+      logger.info(`🎛️ Dashboard: http://localhost:${PORT}/dashboard`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error(`Failed to start server: ${error}`);
     process.exit(1);
   }
 };
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
+  logger.error(`Unhandled Rejection: ${err}`);
   process.exit(1);
 });
 

@@ -3,28 +3,74 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import User from '../models/User';
 import InvitationCode from '../models/InvitationCode';
-// Intentamos importar los tipos desde fintech-personal-common o creamos versiones simples para pruebas
-let UserRegistrationDto: any, UserLoginDto: any, AuthResponseDto: any;
-let AppError: any, NotFoundError: any, ValidationError: any;
+import logger from '../config/logger';
+
+// Definimos interfaces locales para los tipos de datos
+interface UserRegistrationDto {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface UserLoginDto {
+  email: string;
+  password: string;
+}
+
+interface AuthResponseDto {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+// Definimos o cargamos clases de error según disponibilidad del paquete
+let AppError: any;
+let NotFoundError: any;
+let ValidationError: any;
 
 try {
-  const commonTypes = require('fintech-personal-common');
-  UserRegistrationDto = commonTypes.UserRegistrationDto;
-  UserLoginDto = commonTypes.UserLoginDto;
-  AuthResponseDto = commonTypes.AuthResponseDto;
-  AppError = commonTypes.AppError;
-  NotFoundError = commonTypes.NotFoundError;
-  ValidationError = commonTypes.ValidationError;
+  // Intentar cargar los errores desde el paquete
+  const commonPackage = require('fintech-personal-common');
+  AppError = commonPackage.AppError;
+  NotFoundError = commonPackage.NotFoundError;
+  ValidationError = commonPackage.ValidationError;
+  logger.debug('Loaded error types from fintech-personal-common');
 } catch (e) {
-  console.warn('fintech-personal-common types not available, using simple objects for testing');
+  // Usar nuestras propias definiciones de errores
+  logger.warn('fintech-personal-common types not available, using fallback error types');
   
-  // Definimos versiones básicas para pruebas
   AppError = class AppError extends Error {
     statusCode: number = 500;
     code: string = 'APP_ERROR';
+    
+    constructor(message: string) {
+      super(message);
+      this.name = 'AppError';
+    }
   };
-  NotFoundError = class NotFoundError extends AppError {};
-  ValidationError = class ValidationError extends AppError {};
+  
+  NotFoundError = class NotFoundError extends AppError {
+    constructor(message: string) {
+      super(message);
+      this.statusCode = 404;
+      this.code = 'NOT_FOUND';
+      this.name = 'NotFoundError';
+    }
+  };
+  
+  ValidationError = class ValidationError extends AppError {
+    constructor(message: string) {
+      super(message);
+      this.statusCode = 400;
+      this.code = 'VALIDATION_ERROR';
+      this.name = 'ValidationError';
+    }
+  };
 }
 
 class AuthService {
@@ -32,19 +78,14 @@ class AuthService {
   private generateToken(userId: string): string {
     const secret = process.env.JWT_SECRET || 'your_jwt_secret_key';
     
-    // Corregimos el manejo de expiresIn para evitar problemas de tipo
-    const options: jwt.SignOptions = {};
-    if (process.env.JWT_EXPIRES_IN) {
-      options.expiresIn = process.env.JWT_EXPIRES_IN;
-    } else {
-      options.expiresIn = '1d';
-    }
-    
-    return jwt.sign({ userId }, secret, options);
+    // En lugar de establecer expiresIn directamente, lo pasamos como tercer argumento en sign()
+    return jwt.sign({ userId }, secret, { 
+      expiresIn: process.env.JWT_EXPIRES_IN || '1d' 
+    });
   }
 
   // Register a new user with invitation code
-  public async register(userData: UserRegistrationDto & { invitationCode: string }): Promise<AuthResponseDto> {
+  public async register(userData: { name: string; email: string; password: string; invitationCode: string }): Promise<AuthResponseDto> {
     // Validate invitation code
     const invitationCode = await InvitationCode.findOne({
       where: { code: userData.invitationCode }
@@ -91,7 +132,7 @@ class AuthService {
   }
 
   // Login existing user
-  public async login(loginData: UserLoginDto): Promise<AuthResponseDto> {
+  public async login(loginData: { email: string; password: string }): Promise<AuthResponseDto> {
     // Find user by email
     const user = await User.findOne({
       where: { email: loginData.email }

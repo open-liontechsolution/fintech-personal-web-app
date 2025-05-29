@@ -13,6 +13,7 @@ services:
       - DB_USER=fintech_user
       - DB_PASSWORD=fintech_password
       - DB_NAME=fintech_personal
+      - DB_SCHEMA=fintech
       - JWT_SECRET=your_jwt_secret_key_for_development
       - JWT_EXPIRES_IN=1d
       - RABBITMQ_URL=amqp://rabbitmq
@@ -22,6 +23,7 @@ services:
       - DISABLE_DB_SYNC=true
       - FORCE_DB_SYNC=true
       - IS_CLUSTER=false
+      - LOG_LEVEL=info
     depends_on:
       - db
       - rabbitmq

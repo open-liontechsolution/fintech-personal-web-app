@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
+import logger from './logger';
 
 // Load environment variables
 dotenv.config();
@@ -13,7 +14,10 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432', 10),
     dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: (sql) => {
+      // Solo log de SQL en nivel debug
+      logger.debug(sql);
+    },
     schema: process.env.DB_SCHEMA || 'fintech',
     define: {
       underscored: true,
@@ -32,10 +36,10 @@ const sequelize = new Sequelize(
 sequelize
   .authenticate()
   .then(() => {
-    console.log('Database connection has been established successfully.');
+    logger.info('Database connection has been established successfully.');
   })
   .catch((err) => {
-    console.error('Unable to connect to the database:', err);
+    logger.error('Unable to connect to the database:', err);
   });
 
 export default sequelize;

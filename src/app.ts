@@ -7,6 +7,8 @@ import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes';
 import { errorHandler, notFound } from './middleware/errorMiddleware';
 import { setupSwagger } from './config/swagger';
+import httpLogger from './middleware/httpLogger';
+import logger from './config/logger';
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +17,11 @@ dotenv.config();
 const app = express();
 
 // Middleware
+
+// Logging HTTP requests
+app.use(httpLogger);
+
+// Standard middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
