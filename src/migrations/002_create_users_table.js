@@ -1,7 +1,10 @@
 // Migration to create the users table
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('users', {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
+    await queryInterface.createTable({ tableName: 'users', schema: 'fintech' }, {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -41,7 +44,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface) => {
-    await queryInterface.dropTable('users');
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.dropTable({ tableName: 'users', schema: 'fintech' });
   }
 };

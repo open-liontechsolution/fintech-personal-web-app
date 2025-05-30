@@ -2,7 +2,10 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('accounts', {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
+    await queryInterface.createTable({ tableName: 'accounts', schema: 'fintech' }, {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -13,7 +16,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: 'users',
+          model: { tableName: 'users', schema: 'fintech' },
           key: 'id'
         },
         onDelete: 'CASCADE'
@@ -83,28 +86,28 @@ module.exports = {
     });
 
     // Add indexes to improve query performance
-    await queryInterface.addIndex('accounts', ['user_id'], {
+    await queryInterface.addIndex({ tableName: 'accounts', schema: 'fintech' }, ['user_id'], {
       name: 'accounts_user_id_idx'
     });
     
-    await queryInterface.addIndex('accounts', ['type'], {
+    await queryInterface.addIndex({ tableName: 'accounts', schema: 'fintech' }, ['type'], {
       name: 'accounts_type_idx'
     });
     
-    await queryInterface.addIndex('accounts', ['is_active'], {
+    await queryInterface.addIndex({ tableName: 'accounts', schema: 'fintech' }, ['is_active'], {
       name: 'accounts_is_active_idx'
     });
     
-    await queryInterface.addIndex('accounts', ['name'], {
+    await queryInterface.addIndex({ tableName: 'accounts', schema: 'fintech' }, ['name'], {
       name: 'accounts_name_idx'
     });
     
-    await queryInterface.addIndex('accounts', ['user_id', 'currency'], {
+    await queryInterface.addIndex({ tableName: 'accounts', schema: 'fintech' }, ['user_id', 'currency'], {
       name: 'accounts_user_currency_idx'
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('accounts');
+    await queryInterface.dropTable({ tableName: 'accounts', schema: 'fintech' });
   }
 };

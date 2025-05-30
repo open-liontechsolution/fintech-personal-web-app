@@ -131,6 +131,7 @@ Category.init(
   {
     sequelize,
     tableName: 'categories',
+    schema: process.env.DB_SCHEMA || 'fintech',
     modelName: 'Category',
     underscored: true,
     indexes: [

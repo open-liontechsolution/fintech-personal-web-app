@@ -202,6 +202,7 @@ ExchangeRate.init(
   {
     sequelize,
     tableName: 'exchange_rates',
+    schema: process.env.DB_SCHEMA || 'fintech',
     modelName: 'ExchangeRate',
     underscored: true,
     indexes: [

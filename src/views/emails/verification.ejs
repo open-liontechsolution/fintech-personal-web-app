@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifica tu correo electrónico</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 30px;
+      background-color: #f9f9f9;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo {
+      max-width: 150px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #2c3e50;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    p {
+      margin-bottom: 20px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #3498db;
+      color: white;
+      text-decoration: none;
+      padding: 12px 25px;
+      border-radius: 4px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .button:hover {
+      background-color: #2980b9;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>¡Hola <%= name %>!</h1>
+    </div>
+    
+    <p>Gracias por registrarte en Fintech Personal. Para completar tu registro y comenzar a utilizar nuestros servicios, por favor verifica tu correo electrónico.</p>
+    
+    <p style="text-align: center;">
+      <a href="<%= verificationUrl %>" class="button">Verificar correo electrónico</a>
+    </p>
+    
+    <p>Si el botón no funciona, también puedes copiar y pegar el siguiente enlace en tu navegador:</p>
+    
+    <p style="word-break: break-all;"><%= verificationUrl %></p>
+    
+    <p>Este enlace estará activo durante 24 horas. Si no realizaste esta solicitud, puedes ignorar este correo.</p>
+    
+    <p>Saludos,<br>El equipo de Fintech Personal</p>
+    
+    <div class="footer">
+      <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+      <p>&copy; <%= new Date().getFullYear() %> Fintech Personal. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>

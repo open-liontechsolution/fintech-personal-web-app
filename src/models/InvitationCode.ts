@@ -107,6 +107,7 @@ InvitationCode.init(
   {
     sequelize,
     tableName: 'invitation_codes',
+    schema: process.env.DB_SCHEMA || 'fintech',
     modelName: 'InvitationCode',
     underscored: true,
   }

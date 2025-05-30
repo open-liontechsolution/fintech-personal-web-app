@@ -1,7 +1,10 @@
 // Migration to create the invitation codes table for closed registration
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('invitation_codes', {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
+    await queryInterface.createTable({ tableName: 'invitation_codes', schema: 'fintech' }, {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -17,7 +20,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: true,
         references: {
-          model: 'users',
+          model: { tableName: 'users', schema: 'fintech' },
           key: 'id'
         },
         onDelete: 'SET NULL'
@@ -26,7 +29,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: true,
         references: {
-          model: 'users',
+          model: { tableName: 'users', schema: 'fintech' },
           key: 'id'
         },
         onDelete: 'SET NULL'
@@ -57,6 +60,6 @@ module.exports = {
   },
 
   down: async (queryInterface) => {
-    await queryInterface.dropTable('invitation_codes');
+    await queryInterface.dropTable({ tableName: 'invitation_codes', schema: 'fintech' });
   }
 };

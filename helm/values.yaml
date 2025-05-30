@@ -40,9 +40,24 @@ config:
   dbSchema: "fintech"
   nodeEnv: "production"
   # logLevel: "info"
-  disableDbSync: "false"
-  runMigrations: "false"
-  runSeeds: "false"
+  disableDbSync: "true"  # Siempre deshabilitar la sincronización automática
+  runMigrations: "false"  # Ya no se usa, reemplazado por Jobs
+  runSeeds: "false"      # Ya no se usa, reemplazado por Jobs
+
+# Configuración para los Jobs de migraciones
+migrations:
+  enabled: false  # Por defecto deshabilitado en producción
+  runSeeds: false  # Por defecto no ejecutar semillas
+  backoffLimit: 3   # Número máximo de reintentos
+  activeDeadlineSeconds: 600  # 10 minutos como máximo para completar
+  ttlSecondsAfterFinished: 3600  # Eliminar el job después de 1 hora
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
 
 # Los secrets no se incluyen aquí por razones de seguridad
 # Están definidos en archivos separados en el directorio /secrets

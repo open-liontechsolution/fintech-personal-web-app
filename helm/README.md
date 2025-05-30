@@ -6,18 +6,19 @@ Este Helm chart permite desplegar la aplicación web de Fintech en un cluster de
 
 ```
 helm/
-├── Chart.yaml                 # Información básica del chart
-├── values.yaml                # Valores por defecto para todos los entornos
-├── environments/              # Valores específicos por entorno
-│   └── dev/                  # Configuración para entorno de desarrollo
-│       ├── values-dev.yaml     # Valores para el entorno dev
-│       └── sealedsecret-dev.yaml # SealedSecret encriptado para dev
-└── templates/
-    ├── _helpers.tpl           # Plantilla con funciones auxiliares
-    ├── configmap.yaml         # ConfigMap con la configuración de la aplicación
-    ├── deployment.yaml        # Deployment para la aplicación
-    ├── postgres-network-policy.yaml # Política de red para acceso a PostgreSQL
-    └── service.yaml           # Servicio para exponer la aplicación
+│├─ Chart.yaml                 # Información básica del chart
+│├─ values.yaml                # Valores por defecto para todos los entornos
+│├─ environments/              # Valores específicos por entorno
+││   └─ dev/                  # Configuración para entorno de desarrollo
+││       ├─ values-dev.yaml     # Valores para el entorno dev
+││       └─ sealedsecret-dev.yaml # SealedSecret encriptado para dev
+│└─ templates/
+    ├─ _helpers.tpl           # Plantilla con funciones auxiliares
+    ├─ configmap.yaml         # ConfigMap con la configuración de la aplicación
+    ├─ deployment.yaml        # Deployment para la aplicación
+    ├─ migration-job.yaml     # Jobs para migraciones y semillas de la base de datos
+    ├─ postgres-network-policy.yaml # Política de red para acceso a PostgreSQL
+    └─ service.yaml           # Servicio para exponer la aplicación
 ```
 
 ## Instalación
@@ -57,6 +58,8 @@ helm install fintech-webapp ./helm \
 | `image.pullPolicy` | Política de pull de la imagen | `IfNotPresent` |
 | `service.type` | Tipo de servicio de Kubernetes | `ClusterIP` |
 | `service.port` | Puerto expuesto por el servicio | `80` |
+| `migrations.enabled` | Habilitar Jobs de migraciones | `false` |
+| `migrations.runSeeds` | Ejecutar semillas de datos | `false` |
 
 ### Configuración de Entorno
 
@@ -64,13 +67,32 @@ Los valores específicos por entorno se encuentran en los archivos dentro del di
 
 - `values-dev.yaml`: Valores para el entorno de desarrollo
 
-## Migraciones y Sincronización de Base de Datos
+## Migraciones y Base de Datos
 
-El chart incluye parámetros para controlar migraciones y sincronización de base de datos:
+El chart utiliza Jobs de Kubernetes para ejecutar migraciones y semillas de base de datos. Esta es una práctica más segura y profesional que ejecutar migraciones en el contenedor principal de la aplicación.
 
-- `config.disableDbSync`: Deshabilitar sincronización automática de la base de datos
-- `config.runMigrations`: Ejecutar migraciones al iniciar la aplicación
-- `config.runSeeds`: Ejecutar semillas de datos al iniciar la aplicación
+### Configuración de Migraciones
+
+Los siguientes parámetros permiten configurar los Jobs de migraciones:
+
+```yaml
+migrations:
+  enabled: true            # Habilitar/deshabilitar migraciones automáticas
+  runSeeds: true           # Habilitar/deshabilitar carga de datos semilla
+  backoffLimit: 3          # Número máximo de reintentos
+  activeDeadlineSeconds: 900  # Tiempo máximo de ejecución en segundos
+  ttlSecondsAfterFinished: 3600  # Tiempo antes de eliminar el job completado
+```
+
+Los Jobs de migración se ejecutan automáticamente como hooks de pre-install y pre-upgrade, garantizando que la base de datos esté actualizada antes de desplegar la aplicación.
+
+### Parámetros Antiguos (Obsoletos)
+
+Los siguientes parámetros se mantienen por compatibilidad pero ya no se utilizan:
+
+- `config.disableDbSync`: Ahora siempre debe ser `true` para deshabilitar sincronización automática
+- `config.runMigrations`: Reemplazado por `migrations.enabled`
+- `config.runSeeds`: Reemplazado por `migrations.runSeeds`
 
 ## ArgoCD
 

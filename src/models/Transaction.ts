@@ -198,6 +198,7 @@ Transaction.init(
   {
     sequelize,
     tableName: 'transactions',
+    schema: process.env.DB_SCHEMA || 'fintech',
     modelName: 'Transaction',
     underscored: true,
     indexes: [

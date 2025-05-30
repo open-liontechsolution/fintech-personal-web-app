@@ -1,7 +1,10 @@
 // Migration to create the sessions table
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('sessions', {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
+    await queryInterface.createTable({ tableName: 'sessions', schema: 'fintech' }, {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -12,7 +15,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: 'users',
+          model: { tableName: 'users', schema: 'fintech' },
           key: 'id'
         },
         onDelete: 'CASCADE'
@@ -46,6 +49,6 @@ module.exports = {
   },
 
   down: async (queryInterface) => {
-    await queryInterface.dropTable('sessions');
+    await queryInterface.dropTable({ tableName: 'sessions', schema: 'fintech' });
   }
 };

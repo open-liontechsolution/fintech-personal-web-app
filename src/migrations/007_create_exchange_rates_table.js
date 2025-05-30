@@ -2,7 +2,10 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('exchange_rates', {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
+    await queryInterface.createTable({ tableName: 'exchange_rates', schema: 'fintech' }, {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -45,10 +48,13 @@ module.exports = {
     });
 
     // Añadir índice compuesto para búsqueda rápida
-    await queryInterface.addIndex('exchange_rates', ['source_currency', 'target_currency', 'date']);
+    await queryInterface.addIndex(
+      { tableName: 'exchange_rates', schema: 'fintech' }, 
+      ['source_currency', 'target_currency', 'date']
+    );
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('exchange_rates');
+    await queryInterface.dropTable({ tableName: 'exchange_rates', schema: 'fintech' });
   }
 };

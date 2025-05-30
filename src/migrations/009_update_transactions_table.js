@@ -2,12 +2,19 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
     // Primero, verificamos si la tabla de transacciones existe
-    const tableExists = await queryInterface.tableExists('transactions');
+    // Usamos una consulta SQL directa para verificar la existencia en el esquema fintech
+    const [tables] = await queryInterface.sequelize.query(
+      "SELECT * FROM information_schema.tables WHERE table_schema = 'fintech' AND table_name = 'transactions'"
+    );
+    const tableExists = tables.length > 0;
     
     if (!tableExists) {
       // Si la tabla no existe, la creamos completa
-      await queryInterface.createTable('transactions', {
+      await queryInterface.createTable({ tableName: 'transactions', schema: 'fintech' }, {
         id: {
           type: Sequelize.UUID,
           defaultValue: Sequelize.UUIDV4,
@@ -17,7 +24,7 @@ module.exports = {
           type: Sequelize.UUID,
           allowNull: false,
           references: {
-            model: 'users',
+            model: { tableName: 'users', schema: 'fintech' },
             key: 'id'
           },
           onDelete: 'CASCADE'
@@ -56,7 +63,7 @@ module.exports = {
           type: Sequelize.UUID,
           allowNull: true,
           references: {
-            model: 'categories',
+            model: { tableName: 'categories', schema: 'fintech' },
             key: 'id'
           },
           onDelete: 'SET NULL'
@@ -98,10 +105,10 @@ module.exports = {
       });
     } else {
       // Si la tabla ya existe, añadimos los nuevos campos si no existen
-      const columns = await queryInterface.describeTable('transactions');
+      const columns = await queryInterface.describeTable({ tableName: 'transactions', schema: 'fintech' });
       
       if (!columns.currency) {
-        await queryInterface.addColumn('transactions', 'currency', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'currency', {
           type: Sequelize.CHAR(3),
           allowNull: false,
           defaultValue: 'EUR'
@@ -109,7 +116,7 @@ module.exports = {
       }
 
       if (!columns.account_id) {
-        await queryInterface.addColumn('transactions', 'account_id', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'account_id', {
           type: Sequelize.UUID,
           allowNull: true,
           comment: 'ID de la cuenta asociada a la transacción'
@@ -117,28 +124,28 @@ module.exports = {
       }
 
       if (!columns.description) {
-        await queryInterface.addColumn('transactions', 'description', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'description', {
           type: Sequelize.STRING(255),
           allowNull: true
         });
       }
 
       if (!columns.notes) {
-        await queryInterface.addColumn('transactions', 'notes', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'notes', {
           type: Sequelize.TEXT,
           allowNull: true
         });
       }
 
       if (!columns.subcategory_id) {
-        await queryInterface.addColumn('transactions', 'subcategory_id', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'subcategory_id', {
           type: Sequelize.UUID,
           allowNull: true
         });
       }
 
       if (!columns.is_recurring) {
-        await queryInterface.addColumn('transactions', 'is_recurring', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'is_recurring', {
           type: Sequelize.BOOLEAN,
           allowNull: false,
           defaultValue: false
@@ -146,11 +153,11 @@ module.exports = {
       }
       
       if (!columns.category_id) {
-        await queryInterface.addColumn('transactions', 'category_id', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'category_id', {
           type: Sequelize.UUID,
           allowNull: true,
           references: {
-            model: 'categories',
+            model: { tableName: 'categories', schema: 'fintech' },
             key: 'id'
           },
           onDelete: 'SET NULL'
@@ -158,21 +165,21 @@ module.exports = {
       }
       
       if (!columns.tags) {
-        await queryInterface.addColumn('transactions', 'tags', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'tags', {
           type: Sequelize.ARRAY(Sequelize.STRING),
           allowNull: true
         });
       }
       
       if (!columns.location) {
-        await queryInterface.addColumn('transactions', 'location', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'location', {
           type: Sequelize.JSONB,
           allowNull: true
         });
       }
       
       if (!columns.status) {
-        await queryInterface.addColumn('transactions', 'status', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'status', {
           type: Sequelize.STRING(20),
           allowNull: false,
           defaultValue: 'completed'
@@ -180,7 +187,7 @@ module.exports = {
       }
       
       if (!columns.metadata) {
-        await queryInterface.addColumn('transactions', 'metadata', {
+        await queryInterface.addColumn({ tableName: 'transactions', schema: 'fintech' }, 'metadata', {
           type: Sequelize.JSONB,
           allowNull: true
         });
@@ -189,51 +196,58 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Comprobar si la tabla existe
-    const tableExists = await queryInterface.tableExists('transactions');
+    // Comprobar si la tabla existe en el esquema fintech
+    const [tables] = await queryInterface.sequelize.query(
+      "SELECT * FROM information_schema.tables WHERE table_schema = 'fintech' AND table_name = 'transactions'"
+    );
+    const tableExists = tables.length > 0;
     
     if (tableExists) {
-      const columns = await queryInterface.describeTable('transactions');
+      const columns = await queryInterface.describeTable({ tableName: 'transactions', schema: 'fintech' });
       
       // Remover los nuevos campos si existen
       if (columns.currency) {
-        await queryInterface.removeColumn('transactions', 'currency');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'currency');
       }
       
       if (columns.account_id) {
-        await queryInterface.removeColumn('transactions', 'account_id');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'account_id');
       }
       
       if (columns.description) {
-        await queryInterface.removeColumn('transactions', 'description');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'description');
       }
       
       if (columns.notes) {
-        await queryInterface.removeColumn('transactions', 'notes');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'notes');
       }
       
       if (columns.subcategory_id) {
-        await queryInterface.removeColumn('transactions', 'subcategory_id');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'subcategory_id');
       }
       
       if (columns.is_recurring) {
-        await queryInterface.removeColumn('transactions', 'is_recurring');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'is_recurring');
       }
       
       if (columns.category_id) {
-        await queryInterface.removeColumn('transactions', 'category_id');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'category_id');
       }
       
       if (columns.tags) {
-        await queryInterface.removeColumn('transactions', 'tags');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'tags');
       }
       
       if (columns.location) {
-        await queryInterface.removeColumn('transactions', 'location');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'location');
       }
       
       if (columns.status) {
-        await queryInterface.removeColumn('transactions', 'status');
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'status');
+      }
+      
+      if (columns.metadata) {
+        await queryInterface.removeColumn({ tableName: 'transactions', schema: 'fintech' }, 'metadata');
       }
     }
   }

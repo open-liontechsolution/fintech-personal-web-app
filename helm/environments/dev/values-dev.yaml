@@ -24,10 +24,17 @@ config:
   dbReadHost: "postgresql-read.generic.svc.cluster.local"
   dbName: "fintech_db"
   dbSchema: "fintech"
-  # Control de migraciones y sincronización de BD para desarrollo
-  disableDbSync: "false"
-  runMigrations: "false"
-  runSeeds: "false"
+  # Siempre deshabilitar la sincronización automática y usar Jobs en su lugar
+  disableDbSync: "true"
+  runMigrations: "false"  # Ya no se usa, reemplazado por Jobs
+  runSeeds: "false"      # Ya no se usa, reemplazado por Jobs
+
+# Habilitar Jobs de migraciones para entorno dev
+migrations:
+  enabled: true            # Habilitar migraciones automáticas en dev
+  runSeeds: true           # También ejecutar seeds en entorno de desarrollo
+  backoffLimit: 3          # Número máximo de reintentos
+  activeDeadlineSeconds: 900  # 15 minutos como máximo para completar (más tiempo en dev)
 
 # Los secrets no se incluyen aquí por razones de seguridad
 # Están definidos en archivos separados en el directorio /helm/secrets

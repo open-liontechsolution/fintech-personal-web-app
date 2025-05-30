@@ -2,7 +2,10 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('categories', {
+    // Crear el esquema fintech si no existe
+    await queryInterface.sequelize.query('CREATE SCHEMA IF NOT EXISTS fintech;');
+    
+    await queryInterface.createTable({ tableName: 'categories', schema: 'fintech' }, {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
@@ -20,7 +23,7 @@ module.exports = {
         type: Sequelize.UUID,
         allowNull: true,
         references: {
-          model: 'categories',
+          model: { tableName: 'categories', schema: 'fintech' },
           key: 'id'
         },
         onDelete: 'SET NULL'
@@ -54,6 +57,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('categories');
+    await queryInterface.dropTable({ tableName: 'categories', schema: 'fintech' });
   }
 };

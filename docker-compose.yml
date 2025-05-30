@@ -8,6 +8,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
+      - APP_URL=http://localhost:3000
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=fintech_user
@@ -24,6 +25,13 @@ services:
       - FORCE_DB_SYNC=true
       - IS_CLUSTER=false
       - LOG_LEVEL=info
+      # Email configuration (loaded from .env file)
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_SECURE=${EMAIL_SECURE}
+      - EMAIL_FROM=${EMAIL_FROM}
     depends_on:
       - db
       - rabbitmq

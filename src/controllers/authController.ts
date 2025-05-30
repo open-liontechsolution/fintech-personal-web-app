@@ -1,6 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import authService from '../services/authService';
-import { ValidationError } from 'fintech-personal-common';
+
+// Intentar importar el tipo ValidationError desde el paquete común
+let ValidationError: any;
+try {
+  const { ValidationError: VE } = require('fintech-personal-common');
+  ValidationError = VE;
+} catch (e) {
+  // Usar una definición local si no está disponible
+  ValidationError = class ValidationError extends Error {
+    statusCode = 400;
+    code = 'VALIDATION_ERROR';
+    constructor(message: string) {
+      super(message);
+      this.name = 'ValidationError';
+    }
+  };
+}
 
 class AuthController {
   // Register a new user
@@ -21,7 +37,10 @@ class AuthController {
         invitationCode
       });
       
-      return res.status(201).json(authResponse);
+      return res.status(201).json({
+        ...authResponse,
+        message: 'Registration successful. Please check your email to verify your account.'
+      });
     } catch (error) {
       next(error);
     }
@@ -85,6 +104,93 @@ class AuthController {
       );
       
       return res.status(201).json({ invitationCode });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Verify email
+  public async verifyEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        throw new ValidationError('Valid verification token is required');
+      }
+      
+      await authService.verifyEmail(token);
+      
+      // Puedes redirigir a una página de confirmación o devolver un JSON
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Email verified successfully. You can now log in to your account.' 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  // Resend verification email
+  public async resendVerificationEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        throw new ValidationError('Email is required');
+      }
+      
+      await authService.resendVerificationEmail(email);
+      
+      // Siempre devolvemos éxito aunque el email no exista (por seguridad)
+      return res.status(200).json({ 
+        success: true, 
+        message: 'If your email is registered and not verified, a new verification email has been sent.' 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  // Request password reset
+  public async requestPasswordReset(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        throw new ValidationError('Email is required');
+      }
+      
+      await authService.requestPasswordReset(email);
+      
+      // Siempre devolvemos éxito aunque el email no exista (por seguridad)
+      return res.status(200).json({ 
+        success: true, 
+        message: 'If your email is registered, a password reset link has been sent.' 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  // Reset password
+  public async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        throw new ValidationError('Token and new password are required');
+      }
+      
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        throw new ValidationError('Password must be at least 8 characters long');
+      }
+      
+      await authService.resetPassword(token, newPassword);
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Password has been reset successfully. You can now log in with your new password.' 
+      });
     } catch (error) {
       next(error);
     }

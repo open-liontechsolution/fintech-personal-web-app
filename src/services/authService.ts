@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import User from '../models/User';
 import InvitationCode from '../models/InvitationCode';
 import logger from '../config/logger';
+import emailService from './emailService';
 
 // Definimos interfaces locales para los tipos de datos
 interface UserRegistrationDto {
@@ -104,16 +105,27 @@ class AuthService {
       throw new ValidationError('Email is already in use');
     }
 
+    // Generar token de verificación
+    const emailVerificationToken = emailService.generateToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 horas
+
     // Create new user
     const user = await User.create({
       id: uuidv4(),
       name: userData.name,
       email: userData.email,
-      password: userData.password
+      password: userData.password,
+      emailVerified: false,
+      emailVerificationToken,
+      emailVerificationTokenExpires: expiresAt
     });
 
     // Mark invitation code as used
     await invitationCode.markAsUsed(user.id);
+
+    // Enviar correo de verificación
+    await emailService.sendVerificationEmail(user.email, emailVerificationToken, user.name);
 
     // Generate JWT token
     const token = this.generateToken(user.id);
@@ -195,6 +207,124 @@ class AuthService {
       createdBy,
       expiresAt
     });
+  }
+
+  // Verify email
+  public async verifyEmail(token: string): Promise<boolean> {
+    // Buscar usuario con este token de verificación
+    const user = await User.findOne({
+      where: {
+        emailVerificationToken: token,
+        emailVerified: false
+      }
+    });
+
+    if (!user) {
+      throw new ValidationError('Invalid verification token');
+    }
+
+    // Verificar que el token no ha expirado
+    if (user.emailVerificationTokenExpires && new Date() > user.emailVerificationTokenExpires) {
+      throw new ValidationError('Verification token has expired');
+    }
+
+    // Actualizar usuario como verificado
+    user.emailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationTokenExpires = null;
+    await user.save();
+
+    // Enviar correo de bienvenida
+    await emailService.sendWelcomeEmail(user.email, user.name);
+
+    return true;
+  }
+
+  // Request password reset
+  public async requestPasswordReset(email: string): Promise<boolean> {
+    // Buscar usuario por email
+    const user = await User.findOne({
+      where: { email }
+    });
+
+    if (!user) {
+      // No indicamos error para evitar exponer información sobre usuarios existentes
+      logger.info(`Password reset requested for non-existent email: ${email}`);
+      return false;
+    }
+
+    // Generar token de restablecimiento
+    const passwordResetToken = emailService.generateToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hora
+
+    // Actualizar usuario con token
+    user.passwordResetToken = passwordResetToken;
+    user.passwordResetTokenExpires = expiresAt;
+    await user.save();
+
+    // Enviar correo de restablecimiento
+    await emailService.sendPasswordResetEmail(user.email, passwordResetToken, user.name);
+
+    return true;
+  }
+
+  // Reset password with token
+  public async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    // Buscar usuario con este token de restablecimiento
+    const user = await User.findOne({
+      where: {
+        passwordResetToken: token
+      }
+    });
+
+    if (!user) {
+      throw new ValidationError('Invalid reset token');
+    }
+
+    // Verificar que el token no ha expirado
+    if (user.passwordResetTokenExpires && new Date() > user.passwordResetTokenExpires) {
+      throw new ValidationError('Reset token has expired');
+    }
+
+    // Actualizar contraseña
+    user.password = newPassword;
+    user.passwordResetToken = null;
+    user.passwordResetTokenExpires = null;
+    await user.save();
+
+    return true;
+  }
+
+  // Resend verification email
+  public async resendVerificationEmail(email: string): Promise<boolean> {
+    // Buscar usuario por email
+    const user = await User.findOne({
+      where: { 
+        email,
+        emailVerified: false
+      }
+    });
+
+    if (!user) {
+      logger.info(`Verification email resend requested for verified or non-existent email: ${email}`);
+      return false;
+    }
+
+    // Generar nuevo token de verificación
+    const emailVerificationToken = emailService.generateToken();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 horas
+
+    // Actualizar usuario con nuevo token
+    user.emailVerificationToken = emailVerificationToken;
+    user.emailVerificationTokenExpires = expiresAt;
+    await user.save();
+
+    // Enviar correo de verificación
+    await emailService.sendVerificationEmail(user.email, emailVerificationToken, user.name);
+
+    return true;
   }
 }
 

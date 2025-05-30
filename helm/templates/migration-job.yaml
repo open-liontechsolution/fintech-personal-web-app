@@ -1,0 +1,153 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.appName }}-migrations
+  labels:
+    app: {{ .Values.appName }}-migrations
+    app.kubernetes.io/name: {{ .Values.appName }}-migrations
+    app.kubernetes.io/part-of: {{ .Values.appPartOf | default "fintech-personal" }}
+    {{- include "fintech-webapp.labels" . | nindent 4 }}
+  annotations:
+    # Genera un hash único basado en la imagen para forzar que el job se vuelva a ejecutar cuando hay cambios
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit | default 3 }}
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished | default 3600 }}
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: migrations
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["npx", "sequelize-cli", "db:migrate"]
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: NODE_ENV
+        {{- if .Values.config.logLevel }}
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: LOG_LEVEL
+        {{- end }}
+        # Las migraciones deben usar siempre el host primario de la base de datos
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_primary_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_name
+        - name: DB_SCHEMA
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_schema
+        # Las migraciones deben usar credenciales de administrador
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_admin_user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_admin_password
+        # Añadir recursos específicos para el job
+        resources:
+          {{- toYaml .Values.migrations.resources | nindent 12 }}
+      # Añadir un tiempo de espera razonable para completar las migraciones
+      activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds | default 600 }}
+{{- end }}
+
+{{- if and .Values.migrations.enabled .Values.migrations.runSeeds }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.appName }}-seeds
+  labels:
+    app: {{ .Values.appName }}-seeds
+    app.kubernetes.io/name: {{ .Values.appName }}-seeds
+    app.kubernetes.io/part-of: {{ .Values.appPartOf | default "fintech-personal" }}
+    {{- include "fintech-webapp.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": "pre-install,pre-upgrade"
+    "helm.sh/hook-weight": "-4"  # Ejecutar después de las migraciones
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit | default 3 }}
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished | default 3600 }}
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: seeds
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["npx", "sequelize-cli", "db:seed:all"]
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: NODE_ENV
+        {{- if .Values.config.logLevel }}
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: LOG_LEVEL
+        {{- end }}
+        # Las seeds deben usar siempre el host primario de la base de datos
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_primary_host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_port
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_name
+        - name: DB_SCHEMA
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: db_schema
+        # Las seeds deben usar credenciales de administrador
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_admin_user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: db_admin_password
+        resources:
+          {{- toYaml .Values.migrations.resources | nindent 12 }}
+      activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds | default 600 }}
+{{- end }}

@@ -12,11 +12,16 @@ interface UserAttributes {
   createdAt: Date;
   updatedAt: Date;
   lastLogin: Date | null;
+  emailVerified: boolean;
+  emailVerificationToken: string | null;
+  emailVerificationTokenExpires: Date | null;
+  passwordResetToken: string | null;
+  passwordResetTokenExpires: Date | null;
 }
 
 // Interface for User creation attributes - these are the fields that
 // we can omit or set as optional when creating a new record
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin' | 'emailVerified' | 'emailVerificationToken' | 'emailVerificationTokenExpires' | 'passwordResetToken' | 'passwordResetTokenExpires'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
@@ -26,6 +31,11 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public createdAt!: Date;
   public updatedAt!: Date;
   public lastLogin!: Date | null;
+  public emailVerified!: boolean;
+  public emailVerificationToken!: string | null;
+  public emailVerificationTokenExpires!: Date | null;
+  public passwordResetToken!: string | null;
+  public passwordResetTokenExpires!: Date | null;
 
   // Helper method to compare passwords
   public async comparePassword(candidatePassword: string): Promise<boolean> {
@@ -77,10 +87,36 @@ User.init(
       allowNull: true,
       field: 'last_login',
     },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      field: 'email_verified',
+    },
+    emailVerificationToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'email_verification_token',
+    },
+    emailVerificationTokenExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'email_verification_token_expires',
+    },
+    passwordResetToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'password_reset_token',
+    },
+    passwordResetTokenExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'password_reset_token_expires',
+    },
   },
   {
     sequelize,
     tableName: 'users',
+    schema: process.env.DB_SCHEMA || 'fintech',
     modelName: 'User',
     underscored: true,
     hooks: {

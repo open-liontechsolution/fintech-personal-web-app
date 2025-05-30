@@ -57,10 +57,14 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
   
   # En lugar de intentar sincronizar con JS, vamos a crear primero la estructura básica con SQL
   if [ "$FORCE_DB_SYNC" = "true" ]; then
-    echo "Asegurando que las tablas principales existan..."
-    # Crear las tablas principales si no existen
+    echo "Asegurando que el esquema fintech exista..."
+    # Crear el esquema fintech si no existe
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE SCHEMA IF NOT EXISTS fintech;"
+    
+    echo "Asegurando que las tablas principales existan en el esquema fintech..."
+    # Crear las tablas principales en el esquema fintech si no existen
     # Primero crear la tabla de cuentas
-    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS accounts (
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.accounts (
       id UUID PRIMARY KEY,
       user_id UUID NOT NULL,
       name VARCHAR(100) NOT NULL,
@@ -80,7 +84,7 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     );"
     
     # Crear la tabla de categorías
-    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS categories (
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.categories (
       id UUID PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       description TEXT,
@@ -96,7 +100,7 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     );"
     
     # Crear la tabla transactions con todas las columnas necesarias
-    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS transactions (
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.transactions (
       id UUID PRIMARY KEY, 
       user_id UUID NOT NULL, 
       account_id UUID,
@@ -118,7 +122,7 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     );"
     
     # Crear la tabla de tasas de cambio
-    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS exchange_rates (
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.exchange_rates (
       id UUID PRIMARY KEY,
       source_currency CHAR(3) NOT NULL,
       target_currency CHAR(3) NOT NULL,
@@ -134,7 +138,7 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
   
   # Ejecutar migraciones para asegurar estructura de datos consistente
   echo "Ejecutando migraciones de base de datos..."
-  cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME npx sequelize-cli db:migrate
+  cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_SCHEMA=fintech npx sequelize-cli db:migrate
 
   # Verificar si se deben ejecutar las semillas
   if [ "$RUN_SEEDS" = "true" ]; then

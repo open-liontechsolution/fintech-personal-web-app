@@ -9,6 +9,7 @@ module.exports = {
     port: parseInt(process.env.DB_PORT || '5432', 10),
     dialect: 'postgres',
     logging: console.log,
+    schema: process.env.DB_SCHEMA || 'fintech',
     define: {
       underscored: true,
       timestamps: true,
@@ -22,6 +23,7 @@ module.exports = {
     port: parseInt(process.env.TEST_DB_PORT || '5432', 10),
     dialect: 'postgres',
     logging: false,
+    schema: process.env.DB_SCHEMA || 'fintech',
     define: {
       underscored: true,
       timestamps: true,
@@ -35,6 +37,7 @@ module.exports = {
     port: parseInt(process.env.DB_PORT || '5432', 10),
     dialect: 'postgres',
     logging: false,
+    schema: process.env.DB_SCHEMA || 'fintech',
     define: {
       underscored: true,
       timestamps: true,

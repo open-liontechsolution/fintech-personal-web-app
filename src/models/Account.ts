@@ -183,6 +183,7 @@ Account.init(
   {
     sequelize,
     tableName: 'accounts',
+    schema: process.env.DB_SCHEMA || 'fintech',
     modelName: 'Account',
     underscored: true,
     indexes: [
