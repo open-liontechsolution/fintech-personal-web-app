@@ -237,10 +237,6 @@ Transaction.init(
   }
 );
 
-// Define associations
-Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-Transaction.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
-Transaction.belongsTo(Category, { foreignKey: 'subcategoryId', as: 'subcategory' });
-Transaction.belongsTo(Account, { foreignKey: 'accountId', as: 'account' });
+// Las asociaciones se definen centralmente en index.ts
 
 export default Transaction;

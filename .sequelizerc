@@ -6,8 +6,4 @@ module.exports = {
   'seeders-path': path.resolve('src', 'seeders'),
   'migrations-path': path.resolve('src', 'migrations'),
   'url': process.env.DATABASE_URL || 'postgres://fintech_user:fintech_password@db:5432/fintech_personal',
-  'migrations-table': {
-    tableName: 'SequelizeMeta',
-    schema: process.env.DB_SCHEMA || 'fintech'
-  }
 };

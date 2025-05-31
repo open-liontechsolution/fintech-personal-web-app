@@ -22,7 +22,7 @@ services:
       - RUN_SEEDS=true
       - SEED_TEST_DATA=true
       - DISABLE_DB_SYNC=true
-      - FORCE_DB_SYNC=true
+      - FORCE_DB_SYNC=false
       - IS_CLUSTER=false
       - LOG_LEVEL=info
       # Email configuration (loaded from .env file)

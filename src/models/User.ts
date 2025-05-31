@@ -17,11 +17,12 @@ interface UserAttributes {
   emailVerificationTokenExpires: Date | null;
   passwordResetToken: string | null;
   passwordResetTokenExpires: Date | null;
+  invitationLimit: number;
 }
 
 // Interface for User creation attributes - these are the fields that
 // we can omit or set as optional when creating a new record
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin' | 'emailVerified' | 'emailVerificationToken' | 'emailVerificationTokenExpires' | 'passwordResetToken' | 'passwordResetTokenExpires'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin' | 'emailVerified' | 'emailVerificationToken' | 'emailVerificationTokenExpires' | 'passwordResetToken' | 'passwordResetTokenExpires' | 'invitationLimit'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
@@ -36,6 +37,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public emailVerificationTokenExpires!: Date | null;
   public passwordResetToken!: string | null;
   public passwordResetTokenExpires!: Date | null;
+  public invitationLimit!: number;
 
   // Helper method to compare passwords
   public async comparePassword(candidatePassword: string): Promise<boolean> {
@@ -46,6 +48,34 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public toDTO(): Omit<UserAttributes, 'password'> {
     const { password, ...userDTO } = this.toJSON();
     return userDTO;
+  }
+
+  // Check if user can create more invitation codes
+  public async canCreateInvitation(): Promise<boolean> {
+    // Import dynamically to avoid circular dependency
+    const { InvitationCode } = require('./index');
+    
+    // Count how many invitation codes the user has created
+    const createdInvitationsCount = await InvitationCode.count({
+      where: { createdBy: this.id }
+    });
+    
+    // Check if the user has reached their limit
+    return createdInvitationsCount < this.invitationLimit;
+  }
+  
+  // Get how many invitations the user can still create
+  public async getRemainingInvitations(): Promise<number> {
+    // Import dynamically to avoid circular dependency
+    const { InvitationCode } = require('./index');
+    
+    // Count how many invitation codes the user has created
+    const createdInvitationsCount = await InvitationCode.count({
+      where: { createdBy: this.id }
+    });
+    
+    // Calculate remaining invitations
+    return Math.max(0, this.invitationLimit - createdInvitationsCount);
   }
 }
 
@@ -111,6 +141,12 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'password_reset_token_expires',
+    },
+    invitationLimit: {
+      type: DataTypes.INTEGER,
+      defaultValue: 3, // Por defecto, cada usuario puede crear 3 invitaciones
+      allowNull: false,
+      field: 'invitation_limit',
     },
   },
   {

@@ -51,6 +51,34 @@ class InvitationCode extends Model<InvitationCodeAttributes, InvitationCodeCreat
     }
     return code;
   }
+
+  // Create a new invitation code after checking user limits
+  public static async createForUser(userId: string, expiresAt?: Date): Promise<InvitationCode | null> {
+    // Import User model dynamically to avoid circular dependency
+    const { User } = require('./index');
+    
+    // Find the user and check their invitation limit
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    // Check if user can create more invitations
+    const canCreate = await user.canCreateInvitation();
+    if (!canCreate) {
+      return null; // Return null if user has reached their invitation limit
+    }
+    
+    // User can create a new invitation, proceed
+    const invitationCode = await InvitationCode.create({
+      code: InvitationCode.generateCode(),
+      createdBy: userId,
+      expiresAt: expiresAt || null,
+      isUsed: false
+    });
+    
+    return invitationCode;
+  }
 }
 
 InvitationCode.init(
@@ -113,8 +141,6 @@ InvitationCode.init(
   }
 );
 
-// Define associations
-InvitationCode.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
-InvitationCode.belongsTo(User, { as: 'user', foreignKey: 'usedBy' });
+// Las asociaciones se definen centralmente en index.ts
 
 export default InvitationCode;

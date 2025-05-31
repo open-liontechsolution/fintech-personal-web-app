@@ -56,7 +56,9 @@ module.exports = {
         password: await bcrypt.hash('Password123!', 10),
         created_at: new Date(),
         updated_at: new Date(),
-        last_login: null
+        last_login: null,
+        email_verified: true,
+        invitation_limit: 3 // Añadimos el límite de invitaciones predeterminado
       });
     }
     
@@ -68,7 +70,9 @@ module.exports = {
         password: await bcrypt.hash('Admin123!', 10),
         created_at: new Date(),
         updated_at: new Date(),
-        last_login: null
+        last_login: null,
+        email_verified: true,
+        invitation_limit: 10 // Los administradores tienen más invitaciones
       });
     }
     

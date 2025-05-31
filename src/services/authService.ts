@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import User from '../models/User';
@@ -78,11 +78,11 @@ class AuthService {
   // Generate JWT token
   private generateToken(userId: string): string {
     const secret = process.env.JWT_SECRET || 'your_jwt_secret_key';
+    const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
     
-    // En lugar de establecer expiresIn directamente, lo pasamos como tercer argumento en sign()
-    return jwt.sign({ userId }, secret, { 
-      expiresIn: process.env.JWT_EXPIRES_IN || '1d' 
-    });
+    // Ignoramos errores de tipo ya que los tipos de jsonwebtoken pueden ser algo restrictivos
+    // @ts-ignore: Los tipos de jsonwebtoken pueden ser restrictivos
+    return jwt.sign({ userId }, secret, { expiresIn });
   }
 
   // Register a new user with invitation code
@@ -194,19 +194,49 @@ class AuthService {
 
   // Generate new invitation code
   public async generateInvitationCode(createdBy: string | null, expiresInDays?: number): Promise<InvitationCode> {
-    const code = InvitationCode.generateCode();
+    // Si tenemos un ID de usuario creador, verificar su límite de invitaciones
+    if (createdBy) {
+      // Buscar el usuario
+      const user = await User.findByPk(createdBy);
+      
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      
+      // Verificar si puede crear más invitaciones
+      const canCreate = await user.canCreateInvitation();
+      
+      if (!canCreate) {
+        throw new ValidationError('Invitation limit reached. Maximum of ' + user.invitationLimit + ' invitations allowed.');
+      }
+    }
     
+    // Configurar fecha de expiración
     let expiresAt = null;
     if (expiresInDays) {
       expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiresInDays);
     }
 
-    return await InvitationCode.create({
-      code,
-      createdBy,
-      expiresAt
-    });
+    // Usar el método createForUser si hay un usuario creador
+    if (createdBy) {
+      // Convertimos null a undefined para satisfacer la firma del método
+      const expiresAtDate = expiresAt === null ? undefined : expiresAt;
+      const invitation = await InvitationCode.createForUser(createdBy, expiresAtDate);
+      
+      if (!invitation) {
+        throw new ValidationError('Could not create invitation code. You may have reached your limit.');
+      }
+      
+      return invitation;
+    } else {
+      // Para códigos de sistema (sin usuario creador)
+      return await InvitationCode.create({
+        code: InvitationCode.generateCode(),
+        createdBy: null,
+        expiresAt
+      });
+    }
   }
 
   // Verify email

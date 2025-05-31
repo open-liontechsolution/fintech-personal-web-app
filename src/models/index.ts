@@ -14,14 +14,14 @@ User.hasMany(InvitationCode, { foreignKey: 'usedBy', as: 'usedInvitations' });
 User.hasMany(Account, { foreignKey: 'userId', as: 'accounts' });
 
 // Relaciones de Transaction
-Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' }); // Se mantiene 'user' como el alias estándar
 Transaction.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
 Transaction.belongsTo(Category, { foreignKey: 'subcategoryId', as: 'subcategory' });
 Transaction.belongsTo(Account, { foreignKey: 'accountId', as: 'account' });
 
 // Relaciones de InvitationCode
 InvitationCode.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
-InvitationCode.belongsTo(User, { foreignKey: 'usedBy', as: 'user' });
+InvitationCode.belongsTo(User, { foreignKey: 'usedBy', as: 'usedByUser' });
 
 // Relaciones de Category (relaciones jerárquicas se definen en el propio modelo)
 Category.hasMany(Transaction, { foreignKey: 'categoryId', as: 'transactions' });

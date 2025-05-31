@@ -216,7 +216,6 @@ Account.init(
   }
 );
 
-// Define association with User
-Account.belongsTo(User, { foreignKey: 'userId', as: 'owner' });
+// Las asociaciones se definen centralmente en index.ts
 
 export default Account;

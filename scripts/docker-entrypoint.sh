@@ -63,7 +63,24 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     
     echo "Asegurando que las tablas principales existan en el esquema fintech..."
     # Crear las tablas principales en el esquema fintech si no existen
-    # Primero crear la tabla de cuentas
+    # Primero crear la tabla de usuarios con todos los campos actualizados
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.users (
+      id UUID PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      email_verified BOOLEAN DEFAULT false,
+      email_verification_token VARCHAR(255),
+      email_verification_token_expires TIMESTAMP,
+      password_reset_token VARCHAR(255),
+      password_reset_token_expires TIMESTAMP,
+      invitation_limit INTEGER NOT NULL DEFAULT 3,
+      last_login TIMESTAMP,
+      created_at TIMESTAMP NOT NULL,
+      updated_at TIMESTAMP NOT NULL
+    );"
+    
+    # Luego la tabla de cuentas
     PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.accounts (
       id UUID PRIMARY KEY,
       user_id UUID NOT NULL,
@@ -95,6 +112,18 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
       user_id UUID,
       type VARCHAR(20) DEFAULT 'expense',
       metadata JSONB,
+      created_at TIMESTAMP NOT NULL,
+      updated_at TIMESTAMP NOT NULL
+    );"
+    
+    # Crear la tabla de invitaciones
+    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE TABLE IF NOT EXISTS fintech.invitation_codes (
+      id UUID PRIMARY KEY,
+      code VARCHAR(50) NOT NULL UNIQUE,
+      created_by UUID,
+      used_by UUID,
+      is_used BOOLEAN DEFAULT false,
+      expires_at TIMESTAMP,
       created_at TIMESTAMP NOT NULL,
       updated_at TIMESTAMP NOT NULL
     );"
@@ -138,17 +167,17 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
   
   # Ejecutar migraciones para asegurar estructura de datos consistente
   echo "Ejecutando migraciones de base de datos..."
-  cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_SCHEMA=fintech npx sequelize-cli db:migrate
+  cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_SCHEMA=fintech npx sequelize-cli db:migrate --config src/config/sequelize.js --migrations-path src/migrations --models-path src/models
 
   # Verificar si se deben ejecutar las semillas
   if [ "$RUN_SEEDS" = "true" ]; then
     echo "Ejecutando semillas de base de datos..."
-    cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME npx sequelize-cli db:seed:all
+    cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_SCHEMA=fintech npx sequelize-cli db:seed:all --config src/config/sequelize.js --seeders-path src/seeders --models-path src/models
     
     # Verificar si se deben cargar datos de prueba solo en entorno local sin persistencia
     if [ "$SEED_TEST_DATA" = "true" ] && [ "$DISABLE_DB_SYNC" = "true" ] && [ "$IS_CLUSTER" != "true" ]; then
       echo "Cargando datos de prueba para desarrollo local sin persistencia..."
-      cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME IS_CLUSTER=$IS_CLUSTER DISABLE_DB_SYNC=$DISABLE_DB_SYNC SEED_TEST_DATA=$SEED_TEST_DATA npx sequelize-cli db:seed --seed 20230527-dev-test-data.js
+      cd /app && NODE_ENV=$NODE_ENV DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_SCHEMA=fintech IS_CLUSTER=$IS_CLUSTER DISABLE_DB_SYNC=$DISABLE_DB_SYNC SEED_TEST_DATA=$SEED_TEST_DATA npx sequelize-cli db:seed --seed 20230527-dev-test-data.js --config src/config/sequelize.js --seeders-path src/seeders --models-path src/models
     else
       echo "Omitiendo la carga de datos de prueba - Este entorno tiene persistencia o es un cluster"
     fi
