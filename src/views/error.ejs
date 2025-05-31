@@ -1,0 +1,28 @@
+<%- include('partials/header', { title: title || 'Error', isAuthenticated: false }) %>
+
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow">
+      <div class="card-body p-5 text-center">
+        <div class="mb-4">
+          <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 4rem;"></i>
+        </div>
+        <h2 class="mb-4"><%= title || 'Error' %></h2>
+        
+        <div class="alert alert-danger">
+          <p><%= message || 'Ha ocurrido un error inesperado.' %></p>
+          <% if (error) { %>
+            <p class="mt-2 small"><%= error %></p>
+          <% } %>
+        </div>
+        
+        <div class="d-grid gap-2 mt-4">
+          <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+          <a href="/" class="btn btn-outline-secondary mt-2">Ir al Inicio</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

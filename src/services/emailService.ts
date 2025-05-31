@@ -82,20 +82,62 @@ class EmailService {
 
   // Renderizar una plantilla de correo electrónico
   private async renderTemplate(template: EmailTemplate, data: any): Promise<string> {
-    const templatePath = path.join(__dirname, '..', 'views', 'emails', `${template}.ejs`);
+    // Definir múltiples posibles rutas para las plantillas
+    const possiblePaths = [
+      // Ruta en el contenedor Docker (estructura completa)
+      path.join('/app/src/views/emails', `${template}.ejs`),
+      // Ruta para entorno de desarrollo (ejecución directa con ts-node)
+      path.join(__dirname, '..', 'views', 'emails', `${template}.ejs`),
+      // Ruta alternativa para entorno de producción (desde dist)
+      path.join(__dirname, '..', '..', 'src', 'views', 'emails', `${template}.ejs`),
+      // Ruta absoluta basada en la raíz del proyecto
+      path.join(process.cwd(), 'src', 'views', 'emails', `${template}.ejs`)
+    ];
+    
+    let templateContent = null;
+    let templatePath = null;
+    
+    // Intentar cargar la plantilla desde cualquiera de las rutas posibles
+    for (const currentPath of possiblePaths) {
+      try {
+        if (fs.existsSync(currentPath)) {
+          templatePath = currentPath;
+          templateContent = fs.readFileSync(currentPath, 'utf8');
+          logger.info(`Successfully loaded email template from: ${templatePath}`);
+          break;
+        }
+      } catch (err) {
+        // Continuar con la siguiente ruta
+        continue;
+      }
+    }
+    
+    if (!templateContent) {
+      logger.error('Failed to find email template', { 
+        template, 
+        triedPaths: possiblePaths 
+      });
+      throw new Error(`Failed to find template: ${template}`);
+    }
     
     try {
-      const templateContent = fs.readFileSync(templatePath, 'utf8');
       return ejs.render(templateContent, { ...data, appUrl: this.appUrl });
     } catch (error) {
-      logger.error('Failed to render email template', { error, template });
+      logger.error('Failed to render email template', { 
+        error, 
+        template, 
+        templatePath 
+      });
       throw new Error(`Failed to render template: ${template}`);
     }
   }
 
   // Enviar correo de verificación de email
   public async sendVerificationEmail(email: string, token: string, name: string): Promise<boolean> {
-    const verificationUrl = `${this.appUrl}/verify-email?token=${token}`;
+    // Corregido para incluir el prefijo /api/auth/ en la URL
+    const verificationUrl = `${this.appUrl}/api/auth/verify-email?token=${token}`;
+    
+    logger.info(`Generating verification email with URL: ${verificationUrl}`);
     
     const html = await this.renderTemplate(EmailTemplate.VERIFICATION, {
       name,

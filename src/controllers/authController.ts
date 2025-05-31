@@ -118,13 +118,20 @@ class AuthController {
         throw new ValidationError('Valid verification token is required');
       }
       
-      await authService.verifyEmail(token);
-      
-      // Puedes redirigir a una página de confirmación o devolver un JSON
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Email verified successfully. You can now log in to your account.' 
-      });
+      try {
+        // Intentar verificar el email
+        await authService.verifyEmail(token);
+        
+        // Renderizar la página de éxito
+        return res.render('email-verified');
+      } catch (verificationError: any) {
+        // Si hay un error durante la verificación, mostrar página de error
+        return res.render('error', { 
+          title: 'Error de Verificación', 
+          message: 'No se pudo verificar tu correo electrónico. El enlace puede haber caducado o ser inválido.',
+          error: verificationError?.message || 'Token inválido o expirado'
+        });
+      }
     } catch (error) {
       next(error);
     }
