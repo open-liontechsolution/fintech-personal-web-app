@@ -46,7 +46,7 @@ config:
 
 # Configuración para los Jobs de migraciones
 migrations:
-  enabled: false  # Por defecto deshabilitado en producción
+  enabled: true  # Habilitado para recrear las tablas con el usuario correcto
   runSeeds: false  # Por defecto no ejecutar semillas
   backoffLimit: 3   # Número máximo de reintentos
   activeDeadlineSeconds: 600  # 10 minutos como máximo para completar
