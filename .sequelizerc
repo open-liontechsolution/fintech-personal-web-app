@@ -1,9 +1,18 @@
 const path = require('path');
 
+// Si estamos en un entorno de producción/kubernetes, añadimos información de depuración
+if (process.env.NODE_ENV === 'production' || process.env.KUBERNETES_SERVICE_HOST) {
+  console.log('Ejecutando migraciones con la siguiente configuración:');
+  console.log(`DB_HOST: ${process.env.DB_HOST}`);
+  console.log(`DB_PORT: ${process.env.DB_PORT}`);
+  console.log(`DB_NAME: ${process.env.DB_NAME}`);
+}
+
 module.exports = {
   'config': path.resolve('src/config', 'sequelize.js'),
   'models-path': path.resolve('src', 'models'),
   'seeders-path': path.resolve('src', 'seeders'),
   'migrations-path': path.resolve('src', 'migrations'),
-  'url': process.env.DATABASE_URL || 'postgres://fintech_user:fintech_password@db:5432/fintech_personal',
+  // IMPORTANTE: Se elimina la configuración de 'url' para evitar que sobrescriba los parámetros individuales
+  // que vienen de las variables de entorno DB_HOST, DB_PORT, etc.
 };

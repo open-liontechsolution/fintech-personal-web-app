@@ -50,6 +50,10 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
   # Crear la base de datos si no existe
   createdb_if_not_exists
   
+  # Crear el esquema fintech si no existe
+  echo "Configurando extensiones de PostgreSQL..."
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE SCHEMA IF NOT EXISTS fintech;"
+  
   # Crear extensiones necesarias para PostgreSQL
   echo "Configurando extensiones de PostgreSQL..."
   PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
