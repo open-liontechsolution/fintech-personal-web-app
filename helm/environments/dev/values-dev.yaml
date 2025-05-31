@@ -32,7 +32,7 @@ config:
 # Habilitar Jobs de migraciones para entorno dev
 migrations:
   enabled: true            # Habilitar migraciones automáticas en dev
-  runSeeds: true           # También ejecutar seeds en entorno de desarrollo
+  runSeeds: false          # Desactivar seeds para evitar datos ficticios
   backoffLimit: 3          # Número máximo de reintentos
   activeDeadlineSeconds: 900  # 15 minutos como máximo para completar (más tiempo en dev)
 
