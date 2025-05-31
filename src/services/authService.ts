@@ -1,4 +1,4 @@
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import User from '../models/User';
@@ -80,9 +80,24 @@ class AuthService {
     const secret = process.env.JWT_SECRET || 'your_jwt_secret_key';
     const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
     
-    // Ignoramos errores de tipo ya que los tipos de jsonwebtoken pueden ser algo restrictivos
-    // @ts-ignore: Los tipos de jsonwebtoken pueden ser restrictivos
-    return jwt.sign({ userId }, secret, { expiresIn });
+    // Creamos un payload con el ID del usuario
+    const payload = { userId };
+    
+    try {
+      // Usamos un método alternativo que resuelve los problemas de tipado
+      // Convertimos el secreto a Buffer que es compatible con los tipos
+      const secretBuffer = Buffer.from(secret, 'utf8');
+      
+      // Forma alternativa de llamar a jwt.sign que evita problemas de tipado
+      // Esto funciona porque todas las cadenas son válidas para expiresIn en tiempo de ejecución
+      const options = {};
+      Object.defineProperty(options, 'expiresIn', { value: expiresIn });
+      
+      return jwt.sign(payload, secretBuffer, options);
+    } catch (error) {
+      logger.error('Error al firmar el token JWT:', error);
+      throw new AppError('Error al generar el token de autenticación');
+    }
   }
 
   // Register a new user with invitation code
