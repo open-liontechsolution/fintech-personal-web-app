@@ -1,18 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import authService from '../services/authService';
 
-// Intentamos importar UnauthorizedError, o creamos una versión mínima para pruebas
-let UnauthorizedError: any;
-try {
-  const errorTypes = require('fintech-personal-common');
-  UnauthorizedError = errorTypes.UnauthorizedError;
-} catch (e) {
-  console.warn('UnauthorizedError not available from fintech-personal-common, using fallback');
-  UnauthorizedError = class UnauthorizedError extends Error {
-    statusCode: number = 401;
-    code: string = 'UNAUTHORIZED';
-  };
+// Definimos una clase de error para autenticación fallida
+class UnauthorizedError extends Error {
+  statusCode: number;
+  code: string;
+  
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnauthorizedError';
+    this.statusCode = 401;
+    this.code = 'UNAUTHORIZED';
+  }
 }
+
+// Log para depuración
+console.log('[API Auth] UnauthorizedError definido correctamente');
 
 // Extend Express Request interface to include user property
 declare global {

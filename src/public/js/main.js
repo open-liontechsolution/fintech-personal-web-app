@@ -2,7 +2,7 @@
  * Main JavaScript file for Fintech Personal Web App
  */
 
-// Check if user is authenticated
+// Check if user is authenticated - now compatible with our unified auth approach
 function isAuthenticated() {
   return localStorage.getItem('auth_token') !== null;
 }
@@ -21,9 +21,15 @@ async function getCurrentUser() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Token expired or invalid
-        localStorage.removeItem('auth_token');
-        window.location.href = '/login';
+        // Token expired or invalid - use the centralized logout
+        if (typeof window.doLogout === 'function') {
+          window.doLogout();
+        } else {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
         return null;
       }
       throw new Error('Error fetching user data');
@@ -59,6 +65,8 @@ function handleApiError(error) {
   
   if (error.response && error.response.data && error.response.data.error) {
     errorMessage = error.response.data.error.message;
+  } else if (error.message) {
+    errorMessage = error.message;
   }
   
   // You could display this in a toast or alert
@@ -67,14 +75,8 @@ function handleApiError(error) {
 
 // Initialize tooltips and popovers if using Bootstrap
 document.addEventListener('DOMContentLoaded', function() {
-  // Check for protected routes
-  const protectedRoutes = ['/dashboard', '/accounts', '/transactions', '/profile', '/settings'];
-  const currentPath = window.location.pathname;
-  
-  if (protectedRoutes.includes(currentPath) && !isAuthenticated()) {
-    window.location.href = '/login';
-    return;
-  }
+  // La autenticación ahora se gestiona en el servidor, así que solo es
+  // necesario verificar la autenticación para llamadas API, no para la navegación
   
   // Initialize Bootstrap tooltips if they exist
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

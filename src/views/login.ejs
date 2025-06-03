@@ -37,10 +37,37 @@ document.addEventListener('DOMContentLoaded', function() {
   const loginForm = document.getElementById('login-form');
   const errorMessage = document.getElementById('error-message');
   
-  // Check if user is already logged in
+  // Check if user is already logged in, but only redirect if we're not in a redirect loop
+  const urlParams = new URLSearchParams(window.location.search);
+  const noRedirect = urlParams.get('no_redirect');
+  
+  // Solo redirigir si no hay parámetro no_redirect y hay token
   const token = localStorage.getItem('auth_token');
-  if (token) {
-    window.location.href = '/dashboard';
+  if (token && !noRedirect) {
+    // Antes de redirigir, verificar que el token sea válido
+    fetch('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        // Solo redirigir si el token es válido
+        window.location.href = '/dashboard';
+      } else {
+        // Si el token no es válido, limpiarlo del localStorage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    })
+    .catch(error => {
+      console.error('Error verificando token:', error);
+      // Si hay error, mejor no redirigir
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    });
     return;
   }
   
@@ -67,8 +94,13 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error(data.error?.message || 'Error al iniciar sesión');
       }
       
-      // Save token to local storage
+      // Save token to local storage (guardamos en ambos para mantener compatibilidad)
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('token', data.token);
+      
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
       
       // Redirect to dashboard
       window.location.href = '/dashboard';

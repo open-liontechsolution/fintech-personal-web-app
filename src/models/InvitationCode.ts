@@ -19,6 +19,9 @@ interface InvitationCodeAttributes {
 interface InvitationCodeCreationAttributes extends Optional<InvitationCodeAttributes, 'id' | 'createdAt' | 'updatedAt' | 'usedBy' | 'isUsed'> {}
 
 class InvitationCode extends Model<InvitationCodeAttributes, InvitationCodeCreationAttributes> implements InvitationCodeAttributes {
+  // Declare associations
+  public creator?: User;
+  public usedByUser?: User;
   public id!: string;
   public code!: string;
   public createdBy!: string | null;

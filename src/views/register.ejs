@@ -49,10 +49,36 @@ document.addEventListener('DOMContentLoaded', function() {
   const registerForm = document.getElementById('register-form');
   const errorMessage = document.getElementById('error-message');
   
-  // Check if user is already logged in
+  // Check if user is already logged in, but avoid redirect loops
+  const urlParams = new URLSearchParams(window.location.search);
+  const noRedirect = urlParams.get('no_redirect');
+  
+  // Solo redirigir si no hay parámetro no_redirect y hay token
   const token = localStorage.getItem('auth_token');
-  if (token) {
-    window.location.href = '/dashboard';
+  if (token && !noRedirect) {
+    // Verificar que el token sea válido antes de redirigir
+    fetch('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        window.location.href = '/dashboard';
+      } else {
+        // Si no es válido, limpiar tokens
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    })
+    .catch(error => {
+      console.error('Error verificando token:', error);
+      // Si hay error, limpiar tokens
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    });
     return;
   }
   
@@ -81,11 +107,29 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error(data.error?.message || 'Error al registrar usuario');
       }
       
-      // Save token to local storage
-      localStorage.setItem('auth_token', data.token);
+      // Mostrar mensaje de éxito y notificación sobre verificación de email
+      const successMessage = document.createElement('div');
+      successMessage.className = 'alert alert-success mt-3';
+      successMessage.innerHTML = `
+        <strong>¡Registro exitoso!</strong><br>
+        Hemos enviado un correo electrónico a <strong>${email}</strong> con un enlace de verificación.<br>
+        Por favor, revisa tu bandeja de entrada y sigue las instrucciones para activar tu cuenta.
+      `;
       
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
+      // Limpiar formulario y mostrar mensaje
+      registerForm.reset();
+      registerForm.parentNode.appendChild(successMessage);
+      
+      // Deshabilitar el formulario de registro
+      const formInputs = registerForm.querySelectorAll('input, button');
+      formInputs.forEach(input => input.disabled = true);
+      
+      // Agregar botón para ir a login
+      const loginButton = document.createElement('a');
+      loginButton.href = '/login';
+      loginButton.className = 'btn btn-primary mt-3';
+      loginButton.innerText = 'Ir a Login';
+      successMessage.appendChild(loginButton);
     } catch (error) {
       errorMessage.textContent = error.message;
       errorMessage.classList.remove('d-none');

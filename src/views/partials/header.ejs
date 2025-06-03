@@ -33,13 +33,13 @@
           <% if (locals.isAuthenticated) { %>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                <%= locals.user?.name %>
+                <i class="bi bi-person-circle me-1"></i> <%= locals.user?.name %>
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="/profile">Mi Perfil</a></li>
                 <li><a class="dropdown-item" href="/settings">Configuración</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" id="logout-btn">Cerrar Sesión</a></li>
+                <li><form action="/api/auth/logout" method="post" style="display:inline;"><button type="submit" class="dropdown-item" id="logout-btn" onclick="localStorage.removeItem('auth_token'); localStorage.removeItem('token'); localStorage.removeItem('user');">Cerrar Sesión</button></form></li>
               </ul>
             </li>
           <% } else { %>

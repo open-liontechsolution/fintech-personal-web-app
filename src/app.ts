@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fileUpload from 'express-fileupload';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import { authMiddleware } from './middleware/viewAuthMiddleware';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes';
 import { errorHandler, notFound } from './middleware/errorMiddleware';
@@ -25,6 +28,7 @@ app.use(httpLogger);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // Cookie parser middleware
 
 // File upload middleware
 app.use(fileUpload({
@@ -34,12 +38,16 @@ app.use(fileUpload({
 }));
 
 // Static files
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../../src/public')));
+console.log(`[Configuración] Directorio de archivos estáticos: ${path.join(__dirname, '../../src/public')}`);
+
 
 // Views setup
 app.set('view engine', 'ejs');
 // Corregir la ruta para que coincida con donde se copian los archivos en Docker
 app.set('views', path.join(__dirname, '../../src/views'));
+console.log(`[Configuración] Directorio de vistas: ${path.join(__dirname, '../../src/views')}`);
+
 
 // API routes
 app.use('/api', apiRoutes);
@@ -47,21 +55,47 @@ app.use('/api', apiRoutes);
 // Setup Swagger documentation
 setupSwagger(app);
 
+// Aplicar el middleware de autenticación SOLAMENTE a las rutas de vistas, no a archivos estáticos
+
 // Frontend routes
-app.get('/', (req, res) => {
-  res.render('dashboard');
+// Ruta principal - página de inicio
+app.get('/', authMiddleware, (req, res) => {
+  res.render('index', { title: 'Inicio' });
 });
 
-app.get('/login', (req, res) => {
-  res.render('login');
+// Rutas de autenticación
+app.get('/login', authMiddleware, (req, res) => {
+  res.render('login', { title: 'Iniciar Sesión' });
 });
 
-app.get('/register', (req, res) => {
-  res.render('register');
+app.get('/register', authMiddleware, (req, res) => {
+  res.render('register', { title: 'Registro' });
 });
 
-app.get('/dashboard', (req, res) => {
-  res.render('dashboard');
+// Rutas de correo electrónico
+app.get('/email-verified', authMiddleware, (req, res) => {
+  res.render('email-verified', { title: 'Email Verificado' });
+});
+
+// Rutas protegidas
+app.get('/dashboard', authMiddleware, (req, res) => {
+  res.render('dashboard', { title: 'Dashboard' });
+});
+
+app.get('/profile', authMiddleware, (req, res) => {
+  res.render('profile', { title: 'Mi Perfil' });
+});
+
+app.get('/settings', authMiddleware, (req, res) => {
+  res.render('settings', { title: 'Configuración' });
+});
+
+app.get('/transactions', authMiddleware, (req, res) => {
+  res.render('transactions', { title: 'Transacciones' });
+});
+
+app.get('/analytics', authMiddleware, (req, res) => {
+  res.render('analytics', { title: 'Análisis' });
 });
 
 // Error handling middleware

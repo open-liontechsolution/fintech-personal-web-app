@@ -199,10 +199,37 @@ class AuthService {
   public async verifyToken(token: string): Promise<User | null> {
     try {
       const secret = process.env.JWT_SECRET || 'your_jwt_secret_key';
+      
+      logger.debug(`[Auth Service] Verificando token: ${token.substring(0, 15)}...`);
+      
+      // Verificar que el token no esté vacío
+      if (!token || token.trim() === '') {
+        logger.warn('[Auth Service] Se recibió un token vacío para verificación');
+        return null;
+      }
+      
+      // Decodificar token JWT
       const decoded = jwt.verify(token, secret) as { userId: string };
       
-      return await User.findByPk(decoded.userId);
-    } catch (error) {
+      if (!decoded || !decoded.userId) {
+        logger.warn('[Auth Service] Token decodificado sin userId');
+        return null;
+      }
+      
+      logger.debug(`[Auth Service] Token válido para usuario ID: ${decoded.userId}`);
+      
+      // Buscar el usuario en la base de datos
+      const user = await User.findByPk(decoded.userId);
+      
+      if (!user) {
+        logger.warn(`[Auth Service] No se encontró el usuario con ID: ${decoded.userId}`);
+        return null;
+      }
+      
+      return user;
+    } catch (error: any) {
+      // Capturar y loguear el error específico
+      logger.error(`[Auth Service] Error verificando token: ${error?.message || 'Error desconocido'}`);
       return null;
     }
   }

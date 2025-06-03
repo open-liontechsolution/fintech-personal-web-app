@@ -7,6 +7,7 @@ const router = Router();
 // Public routes
 router.post('/register', authController.register);
 router.post('/login', authController.login);
+router.get('/token', authController.getToken);
 
 // Email verification routes
 router.get('/verify-email', authController.verifyEmail);
@@ -18,6 +19,9 @@ router.post('/reset-password', authController.resetPassword);
 
 // Protected routes
 router.get('/me', requireAuth, authController.getCurrentUser);
-router.post('/invitation-code', requireAuth, authController.generateInvitationCode);
+// Ruta de invitation-code movida a invitationRoutes
+
+// Ruta de logout
+router.post('/logout', authController.logout);
 
 export default router;
