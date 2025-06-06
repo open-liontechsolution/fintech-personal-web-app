@@ -19,6 +19,12 @@ spec:
         app: {{ .Values.appName }}
         {{- include "fintech-webapp.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.frpc.enabled }}
+      volumes:
+      - name: frpc-config
+        secret:
+          secretName: frpc-secrets
+      {{- end }}
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -140,3 +146,19 @@ spec:
         readinessProbe:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+      {{- if .Values.frpc.enabled }}
+      - name: frpc-sidecar
+        image: {{ .Values.frpc.image.repository }}:{{ .Values.frpc.image.tag }}
+        imagePullPolicy: {{ .Values.frpc.image.pullPolicy | default "IfNotPresent" }}
+        volumeMounts:
+        - name: frpc-config
+          mountPath: /etc/frp/frpc.toml
+          subPath: frpc.toml
+        resources:
+          limits:
+            cpu: {{ .Values.frpc.resources.limits.cpu | default "150m" }}
+            memory: {{ .Values.frpc.resources.limits.memory | default "192Mi" }}
+          requests:
+            cpu: {{ .Values.frpc.resources.requests.cpu | default "75m" }}
+            memory: {{ .Values.frpc.resources.requests.memory | default "96Mi" }}
+      {{- end }}

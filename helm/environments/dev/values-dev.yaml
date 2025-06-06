@@ -43,3 +43,8 @@ migrations:
 # Development environment might have specific network policy requirements
 postgresNetworkPolicy:
   namespace: "generic"
+
+# Configuración del sidecar frpc para el entorno de desarrollo
+frpc:
+  enabled: true  # Habilitar frpc en entorno de desarrollo
+  # Los datos encriptados del secret se obtienen del archivo frpc-sealedsecret-dev.yaml

@@ -13,6 +13,7 @@ spec:
       valueFiles:
         - environments/dev/values-dev.yaml
         - environments/dev/sealedsecrets-values.yaml
+        - environments/dev/sealedsecrets-frpc.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: fintech-dev
