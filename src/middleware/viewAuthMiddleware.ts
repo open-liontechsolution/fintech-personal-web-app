@@ -20,6 +20,8 @@ const PAGE_AUTH_REQUIREMENTS: Record<string, AuthRequirement> = {
   '/transactions': AuthRequirement.REQUIRED,
   '/settings': AuthRequirement.REQUIRED,
   '/analytics': AuthRequirement.REQUIRED,
+  '/accounts': AuthRequirement.REQUIRED,
+  '/accounts/:id': AuthRequirement.REQUIRED,
 
   // Páginas que no permiten estar autenticado
   '/login': AuthRequirement.FORBIDDEN,

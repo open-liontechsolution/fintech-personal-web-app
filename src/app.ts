@@ -82,6 +82,10 @@ app.get('/dashboard', authMiddleware, (req, res) => {
   res.render('dashboard', { title: 'Dashboard' });
 });
 
+app.get('/accounts', authMiddleware, (req, res) => {
+  res.render('accounts', { title: 'Cuentas Bancarias' });
+});
+
 app.get('/profile', authMiddleware, (req, res) => {
   res.render('profile', { title: 'Mi Perfil' });
 });
@@ -92,6 +96,10 @@ app.get('/settings', authMiddleware, (req, res) => {
 
 app.get('/transactions', authMiddleware, (req, res) => {
   res.render('transactions', { title: 'Transacciones' });
+});
+
+app.get('/accounts/:id', authMiddleware, (req, res) => {
+  res.render('account-details', { title: 'Detalles de Cuenta', accountId: req.params.id });
 });
 
 app.get('/analytics', authMiddleware, (req, res) => {

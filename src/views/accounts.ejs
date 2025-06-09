@@ -1,0 +1,286 @@
+<%- include('partials/header', { title: 'Cuentas Bancarias', isAuthenticated: true }) %>
+
+<div class="row mb-4">
+  <div class="col-md-6">
+    <h1>Cuentas Bancarias</h1>
+    <p class="text-muted">Gestiona tus cuentas bancarias y visualiza tus saldos</p>
+  </div>
+  <div class="col-md-6 text-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+      <i class="bi bi-plus-lg"></i> Nueva Cuenta
+    </button>
+  </div>
+</div>
+
+<!-- Total balance card -->
+<div class="card shadow mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">Balance Total</h5>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="currencyDropdown" data-bs-toggle="dropdown">
+          EUR
+        </button>
+        <ul class="dropdown-menu" id="currencySelector">
+          <li><a class="dropdown-item active" href="#" data-currency="EUR">EUR</a></li>
+          <li><a class="dropdown-item" href="#" data-currency="USD">USD</a></li>
+          <li><a class="dropdown-item" href="#" data-currency="GBP">GBP</a></li>
+        </ul>
+      </div>
+    </div>
+    <h2 id="totalBalance">€0.00</h2>
+  </div>
+</div>
+
+<!-- Accounts list -->
+<div class="card shadow">
+  <div class="card-header">
+    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="active-accounts-tab" data-bs-toggle="tab" data-bs-target="#active-accounts" type="button" role="tab">
+          Cuentas Activas
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="inactive-accounts-tab" data-bs-toggle="tab" data-bs-target="#inactive-accounts" type="button" role="tab">
+          Cuentas Inactivas
+        </button>
+      </li>
+    </ul>
+  </div>
+  <div class="card-body">
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="active-accounts" role="tabpanel">
+        <div id="active-accounts-loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+        <div id="active-accounts-content" class="d-none">
+          <div class="row" id="active-accounts-list">
+            <!-- Active accounts will be loaded here -->
+          </div>
+        </div>
+        <div id="no-active-accounts" class="text-center py-5 d-none">
+          <i class="bi bi-credit-card-2-front text-muted" style="font-size: 3rem;"></i>
+          <h5 class="mt-3">No tienes cuentas activas</h5>
+          <p class="text-muted">Comienza a agregar tus cuentas bancarias para gestionar tu dinero</p>
+          <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+            Agregar Cuenta
+          </button>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="inactive-accounts" role="tabpanel">
+        <div id="inactive-accounts-loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+        <div id="inactive-accounts-content" class="d-none">
+          <div class="row" id="inactive-accounts-list">
+            <!-- Inactive accounts will be loaded here -->
+          </div>
+        </div>
+        <div id="no-inactive-accounts" class="text-center py-5 d-none">
+          <i class="bi bi-credit-card-2-front text-muted" style="font-size: 3rem;"></i>
+          <h5 class="mt-3">No tienes cuentas inactivas</h5>
+          <p class="text-muted">Las cuentas que desactives aparecerán aquí</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Account Modal -->
+<div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addAccountModalLabel">Agregar Nueva Cuenta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addAccountForm">
+          <div class="mb-3">
+            <label for="account-name" class="form-label">Nombre de la Cuenta*</label>
+            <input type="text" class="form-control" id="account-name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="account-type" class="form-label">Tipo de Cuenta*</label>
+            <select class="form-select" id="account-type" name="type" required>
+              <option value="checking">Cuenta Corriente</option>
+              <option value="savings">Cuenta de Ahorro</option>
+              <option value="credit">Tarjeta de Crédito</option>
+              <option value="investment">Cuenta de Inversión</option>
+              <option value="cash">Efectivo</option>
+              <option value="other">Otra</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="account-institution" class="form-label">Institución Bancaria</label>
+            <input type="text" class="form-control" id="account-institution" name="institution">
+          </div>
+          <div class="mb-3">
+            <label for="account-number" class="form-label">Número de Cuenta</label>
+            <input type="text" class="form-control" id="account-number" name="accountNumber">
+            <div class="form-text">Solo se mostrarán los últimos 4 dígitos para tu seguridad.</div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="account-balance" class="form-label">Saldo Inicial*</label>
+              <div class="input-group">
+                <span class="input-group-text">€</span>
+                <input type="number" step="0.01" class="form-control" id="account-balance" name="balance" required value="0.00">
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="account-currency" class="form-label">Moneda*</label>
+              <select class="form-select" id="account-currency" name="currency" required>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="USD">Dólar (USD)</option>
+                <option value="GBP">Libra Esterlina (GBP)</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="account-color" class="form-label">Color</label>
+              <input type="color" class="form-control form-control-color w-100" id="account-color" name="color" value="#3498db">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="account-icon" class="form-label">Icono</label>
+              <select class="form-select" id="account-icon" name="icon">
+                <option value="bi-credit-card">Tarjeta</option>
+                <option value="bi-cash-coin">Efectivo</option>
+                <option value="bi-bank">Banco</option>
+                <option value="bi-piggy-bank">Ahorro</option>
+                <option value="bi-graph-up-arrow">Inversión</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="account-notes" class="form-label">Notas</label>
+            <textarea class="form-control" id="account-notes" name="notes" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveAccountBtn">Guardar Cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Account Modal -->
+<div class="modal fade" id="editAccountModal" tabindex="-1" aria-labelledby="editAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editAccountModalLabel">Editar Cuenta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editAccountForm">
+          <input type="hidden" id="edit-account-id">
+          <div class="mb-3">
+            <label for="edit-account-name" class="form-label">Nombre de la Cuenta*</label>
+            <input type="text" class="form-control" id="edit-account-name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit-account-type" class="form-label">Tipo de Cuenta*</label>
+            <select class="form-select" id="edit-account-type" name="type" required>
+              <option value="checking">Cuenta Corriente</option>
+              <option value="savings">Cuenta de Ahorro</option>
+              <option value="credit">Tarjeta de Crédito</option>
+              <option value="investment">Cuenta de Inversión</option>
+              <option value="cash">Efectivo</option>
+              <option value="other">Otra</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="edit-account-institution" class="form-label">Institución Bancaria</label>
+            <input type="text" class="form-control" id="edit-account-institution" name="institution">
+          </div>
+          <div class="mb-3">
+            <label for="edit-account-number" class="form-label">Número de Cuenta</label>
+            <input type="text" class="form-control" id="edit-account-number" name="accountNumber">
+            <div class="form-text">Solo se mostrarán los últimos 4 dígitos para tu seguridad.</div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="edit-account-balance" class="form-label">Saldo*</label>
+              <div class="input-group">
+                <span class="input-group-text" id="edit-currency-symbol">€</span>
+                <input type="number" step="0.01" class="form-control" id="edit-account-balance" name="balance" required>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="edit-account-currency" class="form-label">Moneda*</label>
+              <select class="form-select" id="edit-account-currency" name="currency" required>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="USD">Dólar (USD)</option>
+                <option value="GBP">Libra Esterlina (GBP)</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="edit-account-color" class="form-label">Color</label>
+              <input type="color" class="form-control form-control-color w-100" id="edit-account-color" name="color">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="edit-account-icon" class="form-label">Icono</label>
+              <select class="form-select" id="edit-account-icon" name="icon">
+                <option value="bi-credit-card">Tarjeta</option>
+                <option value="bi-cash-coin">Efectivo</option>
+                <option value="bi-bank">Banco</option>
+                <option value="bi-piggy-bank">Ahorro</option>
+                <option value="bi-graph-up-arrow">Inversión</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="edit-account-active" class="form-label">Estado de la Cuenta</label>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="edit-account-active" checked>
+              <label class="form-check-label" for="edit-account-active">Cuenta Activa</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="edit-account-notes" class="form-label">Notas</label>
+            <textarea class="form-control" id="edit-account-notes" name="notes" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger me-auto" id="deleteAccountBtn">Eliminar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="updateAccountBtn">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar esta cuenta?</p>
+        <p class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Esta acción no se puede deshacer y eliminará todas las transacciones asociadas a esta cuenta.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar Cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/accounts.js"></script>
+<%- include('partials/footer') %>
