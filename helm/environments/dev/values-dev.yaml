@@ -28,6 +28,11 @@ config:
   disableDbSync: "true"
   runMigrations: "false"  # Ya no se usa, reemplazado por Jobs
   runSeeds: "false"      # Ya no se usa, reemplazado por Jobs
+  # RabbitMQ Configuration
+  rabbitmqExchange: "file-upload-exchange"
+  rabbitmqQueue: "file-import-queue"
+  rabbitmqRoutingKey: "file.uploaded"
+  rabbitmqExchangeType: "topic"
 
 # Habilitar Jobs de migraciones para entorno dev
 migrations:

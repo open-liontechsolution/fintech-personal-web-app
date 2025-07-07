@@ -18,3 +18,8 @@ data:
   DISABLE_DB_SYNC: {{ .Values.config.disableDbSync | quote }}
   RUN_MIGRATIONS: {{ .Values.config.runMigrations | quote }}
   RUN_SEEDS: {{ .Values.config.runSeeds | quote }}
+  # RabbitMQ Configuration
+  RABBITMQ_EXCHANGE: {{ .Values.config.rabbitmqExchange | quote }}
+  RABBITMQ_QUEUE: {{ .Values.config.rabbitmqQueue | quote }}
+  RABBITMQ_ROUTING_KEY: {{ .Values.config.rabbitmqRoutingKey | quote }}
+  RABBITMQ_EXCHANGE_TYPE: {{ .Values.config.rabbitmqExchangeType | quote }}

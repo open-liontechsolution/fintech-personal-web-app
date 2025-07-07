@@ -1,0 +1,341 @@
+<%- include('partials/header', { title: 'Subir Archivos', isAuthenticated: true }) %>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-upload"></i> Subir Archivo
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            Puedes subir archivos CSV o Excel con datos de transacciones. Serán procesados automáticamente.
+          </div>
+          
+          <div class="alert alert-danger d-none" id="upload-error"></div>
+          <div class="alert alert-success d-none" id="upload-success"></div>
+          
+          <form id="upload-form" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="accountId" class="form-label">Cuenta de destino</label>
+              <select class="form-select" id="accountId" name="accountId" required>
+                <option value="">Selecciona una cuenta...</option>
+                <% accounts.forEach(account => { %>
+                <option value="<%= account.id %>">
+                  <%= account.name %> (<%= account.currency %> <%= parseFloat(account.balance || 0).toFixed(2) %>)
+                </option>
+                <% }); %>
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label for="file" class="form-label">Archivo</label>
+              <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+              <div class="form-text">Formatos soportados: CSV, Excel (.xlsx, .xls)</div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="upload-btn">
+              <i class="fas fa-upload"></i> Subir Archivo
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-file-alt"></i> Archivos Subidos
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Archivo</th>
+                  <th>Cuenta</th>
+                  <th>Fecha</th>
+                  <th>Tamaño</th>
+                </tr>
+              </thead>
+              <tbody id="uploaded-files-list">
+                <% if (uploadedFiles && uploadedFiles.length > 0) { %>
+                  <% uploadedFiles.forEach(file => { %>
+                  <tr>
+                    <td>
+                      <i class="fas fa-file-csv text-success"></i>
+                      <%= file.filename %>
+                    </td>
+                    <td>
+                      <span class="badge bg-secondary">
+                        <%= file.metadata?.accountId ? 'Cuenta' : 'N/A' %>
+                      </span>
+                    </td>
+                    <td>
+                      <small class="text-muted">
+                        <%= new Date(file.uploadDate).toLocaleDateString('es-ES') %>
+                      </small>
+                    </td>
+                    <td>
+                      <small class="text-muted">
+                        <%= (file.length / 1024).toFixed(1) %>KB
+                      </small>
+                    </td>
+                  </tr>
+                  <% }); %>
+                <% } else { %>
+                <tr>
+                  <td colspan="4" class="text-center text-muted">
+                    <i class="fas fa-inbox"></i> No hay archivos subidos aún
+                  </td>
+                </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list"></i> Transacciones Procesadas
+            <button class="btn btn-sm btn-outline-primary float-end" onclick="refreshProcessedTransactions()">
+              <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Descripción</th>
+                  <th>Importe</th>
+                  <th>Cuenta</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="processed-transactions-list">
+                <% if (processedTransactions && processedTransactions.length > 0) { %>
+                  <% processedTransactions.forEach(transaction => { %>
+                  <tr>
+                    <td>
+                      <small><%= new Date(transaction.date || transaction.createdAt).toLocaleDateString('es-ES') %></small>
+                    </td>
+                    <td><%= transaction.description || 'Sin descripción' %></td>
+                    <td>
+                      <span class="<%= transaction.amount >= 0 ? 'text-success' : 'text-danger' %>">
+                        <%= transaction.amount ? transaction.amount.toFixed(2) : '0.00' %>€
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge bg-info">
+                        <%= transaction.accountId || 'N/A' %>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge bg-success">Procesada</span>
+                    </td>
+                  </tr>
+                  <% }); %>
+                <% } else { %>
+                <tr>
+                  <td colspan="5" class="text-center text-muted">
+                    <i class="fas fa-database"></i> No hay transacciones procesadas aún
+                  </td>
+                </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const uploadForm = document.getElementById('upload-form');
+  const uploadBtn = document.getElementById('upload-btn');
+  const uploadError = document.getElementById('upload-error');
+  const uploadSuccess = document.getElementById('upload-success');
+
+  uploadForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(uploadForm);
+    
+    // Verificar que se haya seleccionado archivo y cuenta
+    if (!formData.get('file') || !formData.get('accountId')) {
+      showError('Por favor selecciona un archivo y una cuenta');
+      return;
+    }
+    
+    // Deshabilitar botón y mostrar loading
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+    
+    try {
+      const response = await fetch('/upload/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        showSuccess(`Archivo "${result.data.fileName}" subido correctamente. Será procesado en breve.`);
+        uploadForm.reset();
+        
+        // Actualizar listas después de un breve delay
+        setTimeout(() => {
+          refreshUploadedFiles();
+          refreshProcessedTransactions();
+        }, 2000);
+      } else {
+        showError(result.error || 'Error al subir el archivo');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showError('Error de conexión al subir el archivo');
+    } finally {
+      // Rehabilitar botón
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Subir Archivo';
+    }
+  });
+  
+  function showError(message) {
+    uploadError.textContent = message;
+    uploadError.classList.remove('d-none');
+    uploadSuccess.classList.add('d-none');
+  }
+  
+  function showSuccess(message) {
+    uploadSuccess.textContent = message;
+    uploadSuccess.classList.remove('d-none');
+    uploadError.classList.add('d-none');
+  }
+  
+  // Función global para actualizar archivos subidos
+  window.refreshUploadedFiles = async function() {
+    try {
+      const response = await fetch('/upload/uploaded-files', {
+        credentials: 'include'
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        updateUploadedFilesList(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error);
+    }
+  };
+  
+  // Función global para actualizar transacciones procesadas
+  window.refreshProcessedTransactions = async function() {
+    try {
+      const response = await fetch('/upload/processed-transactions', {
+        credentials: 'include'
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        updateProcessedTransactionsList(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching processed transactions:', error);
+    }
+  };
+  
+  function updateUploadedFilesList(files) {
+    const tbody = document.getElementById('uploaded-files-list');
+    if (files.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center text-muted">
+            <i class="fas fa-inbox"></i> No hay archivos subidos aún
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
+    tbody.innerHTML = files.map(file => `
+      <tr>
+        <td>
+          <i class="fas fa-file-csv text-success"></i>
+          ${file.filename}
+        </td>
+        <td>
+          <span class="badge bg-secondary">
+            ${file.metadata?.accountId ? 'Cuenta' : 'N/A'}
+          </span>
+        </td>
+        <td>
+          <small class="text-muted">
+            ${new Date(file.uploadDate).toLocaleDateString('es-ES')}
+          </small>
+        </td>
+        <td>
+          <small class="text-muted">
+            ${(file.length / 1024).toFixed(1)}KB
+          </small>
+        </td>
+      </tr>
+    `).join('');
+  }
+  
+  function updateProcessedTransactionsList(transactions) {
+    const tbody = document.getElementById('processed-transactions-list');
+    if (transactions.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted">
+            <i class="fas fa-database"></i> No hay transacciones procesadas aún
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
+    tbody.innerHTML = transactions.map(transaction => `
+      <tr>
+        <td>
+          <small>${new Date(transaction.date || transaction.createdAt).toLocaleDateString('es-ES')}</small>
+        </td>
+        <td>${transaction.description || 'Sin descripción'}</td>
+        <td>
+          <span class="${transaction.amount >= 0 ? 'text-success' : 'text-danger'}">
+            ${transaction.amount ? transaction.amount.toFixed(2) : '0.00'}€
+          </span>
+        </td>
+        <td>
+          <span class="badge bg-info">
+            ${transaction.accountId || 'N/A'}
+          </span>
+        </td>
+        <td>
+          <span class="badge bg-success">Procesada</span>
+        </td>
+      </tr>
+    `).join('');
+  }
+});
+</script>
+
+<%- include('partials/footer') %>

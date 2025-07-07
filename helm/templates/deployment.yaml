@@ -122,6 +122,11 @@ spec:
             secretKeyRef:
               name: {{ .Values.appName }}-secrets
               key: rabbitmq_url
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.appName }}-secrets
+              key: mongodb_uri
         # Control de migraciones y sincronización de BD
         - name: DISABLE_DB_SYNC
           valueFrom:
@@ -138,6 +143,26 @@ spec:
             configMapKeyRef:
               name: {{ .Values.appName }}-config
               key: RUN_SEEDS
+        - name: RABBITMQ_EXCHANGE
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: RABBITMQ_EXCHANGE
+        - name: RABBITMQ_QUEUE
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: RABBITMQ_QUEUE
+        - name: RABBITMQ_ROUTING_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: RABBITMQ_ROUTING_KEY
+        - name: RABBITMQ_EXCHANGE_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.appName }}-config
+              key: RABBITMQ_EXCHANGE_TYPE
         {{- with .Values.livenessProbe }}
         livenessProbe:
           {{- toYaml . | nindent 10 }}

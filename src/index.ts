@@ -1,6 +1,10 @@
 import app from './app';
 import sequelize from './config/database';
 import logger from './config/logger';
+import mongoDbService from './services/mongoDbService';
+import rabbitMqService from './services/rabbitMqService';
+// Import models to ensure associations are loaded
+import './models/index';
 
 // Set port
 const PORT = process.env.PORT || 3000;
@@ -22,6 +26,24 @@ const startServer = async () => {
       logger.info('Database synchronization skipped (DISABLE_DB_SYNC=true)');
     }
 
+    // Initialize MongoDB connection
+    try {
+      await mongoDbService.connect();
+      logger.info('MongoDB connected successfully');
+    } catch (error) {
+      logger.error('Failed to connect to MongoDB:', error);
+      // Continue without MongoDB for now
+    }
+
+    // Initialize RabbitMQ connection
+    try {
+      await rabbitMqService.connect();
+      logger.info('RabbitMQ connected successfully');
+    } catch (error) {
+      logger.error('Failed to connect to RabbitMQ:', error);
+      // Continue without RabbitMQ for now
+    }
+
     // Start Express server
     app.listen(PORT, () => {
       logger.info(`🚀 Iniciando la aplicación Fintech Personal Web App...`);
@@ -39,6 +61,31 @@ const startServer = async () => {
 process.on('unhandledRejection', (err) => {
   logger.error(`Unhandled Rejection: ${err}`);
   process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  try {
+    await mongoDbService.disconnect();
+    await rabbitMqService.disconnect();
+    logger.info('External services disconnected');
+  } catch (error) {
+    logger.error('Error during shutdown:', error);
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  try {
+    await mongoDbService.disconnect();
+    await rabbitMqService.disconnect();
+    logger.info('External services disconnected');
+  } catch (error) {
+    logger.error('Error during shutdown:', error);
+  }
+  process.exit(0);
 });
 
 // Start the server

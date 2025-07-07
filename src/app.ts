@@ -8,10 +8,13 @@ import jwt from 'jsonwebtoken';
 import { authMiddleware } from './middleware/viewAuthMiddleware';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes';
+import uploadRoutes from './routes/uploadRoutes';
 import { errorHandler, notFound } from './middleware/errorMiddleware';
 import { setupSwagger } from './config/swagger';
 import httpLogger from './middleware/httpLogger';
 import logger from './config/logger';
+import mongoDbService from './services/mongoDbService';
+import rabbitMqService from './services/rabbitMqService';
 
 // Load environment variables
 dotenv.config();
@@ -33,8 +36,7 @@ app.use(cookieParser()); // Cookie parser middleware
 // File upload middleware
 app.use(fileUpload({
   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10) },
-  useTempFiles: true,
-  tempFileDir: '/tmp/'
+  useTempFiles: false  // Usar memoria en lugar de archivos temporales
 }));
 
 // Static files
@@ -51,6 +53,9 @@ console.log(`[Configuración] Directorio de vistas: ${path.join(__dirname, '../.
 
 // API routes
 app.use('/api', apiRoutes);
+
+// Upload routes (with auth middleware for view routes)
+app.use('/upload', authMiddleware, uploadRoutes);
 
 // Setup Swagger documentation
 setupSwagger(app);

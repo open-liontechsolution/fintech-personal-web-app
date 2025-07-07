@@ -22,6 +22,7 @@ const PAGE_AUTH_REQUIREMENTS: Record<string, AuthRequirement> = {
   '/analytics': AuthRequirement.REQUIRED,
   '/accounts': AuthRequirement.REQUIRED,
   '/accounts/:id': AuthRequirement.REQUIRED,
+  '/upload': AuthRequirement.REQUIRED,
 
   // Páginas que no permiten estar autenticado
   '/login': AuthRequirement.FORBIDDEN,
@@ -104,6 +105,10 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
       console.log(`[Auth Middleware] Acceso permitido a ${currentPath} (autenticación opcional)`);
       break;
   }
+  
+  // Establecer variables locales para las vistas
+  res.locals.isAuthenticated = authenticated;
+  res.locals.user = authenticated ? req.user : null;
   
   // Continuar con la solicitud
   console.log(`[Auth Middleware] Continuando a ${currentPath}`);

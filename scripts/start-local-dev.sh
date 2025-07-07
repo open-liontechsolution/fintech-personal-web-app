@@ -18,6 +18,9 @@ fi
 echo "🧹 Limpiando entorno anterior (si existe)"
 docker compose down -v
 
+echo "🧹 Eliminando restos de contenedores para desocupar espacio de almacenamiento"
+docker system prune -a --volumes
+
 echo "🏗️ Construyendo y levantando servicios"
 docker compose up -d --build
 
